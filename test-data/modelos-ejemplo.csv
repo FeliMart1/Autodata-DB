@@ -1,0 +1,11 @@
+marca,modelo,anio,version,combustible,tipo,origen,categoria,segmento,cc,hp,traccion,caja,turbo,puertas,pasajeros,precio,moneda
+Toyota,Yaris,2024,XLS,Nafta,Sedan,Japón,Compacto,B,1500,107,Delantera,Manual,No,5,5,28500,USD
+Toyota,Yaris,2024,XS CVT,Nafta,Sedan,Japón,Compacto,B,1500,107,Delantera,Automática,No,5,5,31200,USD
+Honda,Civic,2024,EX,Nafta,Sedan,Japón,Mediano,C,2000,158,Delantera,CVT,No,4,5,35000,USD
+Ford,Ranger,2024,XLT 4x4,Diesel,Pick-up,USA,Utilitario,Pick-up,3000,170,4x4,Automática,Si,4,5,52000,USD
+Chevrolet,Tracker,2024,Premier,Nafta,SUV,USA,SUV Compacto,B,1200,133,Delantera,Automática,Si,5,5,32000,USD
+Volkswagen,Polo,2024,Comfortline,Nafta,Hatchback,Alemania,Compacto,B,1000,110,Delantera,Manual,No,5,5,24500,USD
+Hyundai,Tucson,2024,Limited,Nafta,SUV,Corea,SUV Mediano,C,2000,156,AWD,Automática,No,5,5,42000,USD
+Nissan,Kicks,2024,Exclusive,Nafta,SUV,Japón,SUV Compacto,B,1600,118,Delantera,CVT,No,5,5,29000,USD
+Jeep,Compass,2024,Longitude,Diesel,SUV,USA,SUV Mediano,C,2200,170,AWD,Automática,Si,5,5,48000,USD
+Fiat,Cronos,2024,Precision,Nafta,Sedan,Italia,Compacto,B,1300,99,Delantera,Manual,No,4,5,19500,USD
