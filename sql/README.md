@@ -17,6 +17,8 @@ Esta carpeta contiene todos los scripts SQL necesarios para el sistema Autodata.
 - **05_agregar_columna_activo.sql** - Agrega columna "Activo" a tablas si no existe
 - **06_actualizar_modelo_nuevo_flujo.sql** - Actualiza estructura para nuevo flujo de estados
 - **07_recrear_equipamiento_modelo.sql** - Recrea tabla de equipamiento con todas las columnas
+- **08_reestructurar_modelos_19_campos.sql** - 🆕 Reestructura tabla Modelo a 19 campos esenciales (Eliminates Modelo1, renombra Tipo2_Carroceria a Carroceria)
+- **09_recrear_equipamiento_campos_especificos.sql** - 🆕 Recrea tabla EquipamientoModelo con campos específicos solicitados
 
 ### Scripts de Datos
 

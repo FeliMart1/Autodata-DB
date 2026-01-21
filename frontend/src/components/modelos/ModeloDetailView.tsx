@@ -16,10 +16,11 @@ export function ModeloDetailView({ modelo }: ModeloDetailViewProps) {
 
   return (
     <div className="space-y-6">
+      {/* DATOS OBLIGATORIOS (5 campos) */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Información General</CardTitle>
+            <CardTitle>Datos de Carga Obligatorios</CardTitle>
             <Badge variant={modelo.Estado === 'DEFINITIVO' ? 'success' : 'default'}>
               {modelo.Estado}
             </Badge>
@@ -27,52 +28,71 @@ export function ModeloDetailView({ modelo }: ModeloDetailViewProps) {
         </CardHeader>
         <CardContent>
           <dl className="divide-y">
-            <InfoRow label="ID" value={modelo.ModeloID} />
             <InfoRow label="Marca" value={modelo.MarcaNombre} />
-            <InfoRow label="Modelo" value={modelo.Modelo || modelo.DescripcionModelo} />
-            <InfoRow label="Código Modelo" value={modelo.CodigoModelo} />
             <InfoRow label="Familia" value={modelo.Familia} />
-            <InfoRow label="Año" value={modelo.Anio} />
-            <InfoRow label="Origen" value={modelo.OrigenCodigo} />
+            <InfoRow label="Modelo" value={modelo.Modelo || modelo.DescripcionModelo} />
             <InfoRow label="Combustible" value={modelo.CombustibleCodigo} />
-            <InfoRow label="Precio 0KM Inicial" value={modelo.Precio0KMInicial ? `$${modelo.Precio0KMInicial.toLocaleString()}` : '-'} />
+            <InfoRow label="Categoría de Vehículo" value={modelo.CategoriaVehiculo || modelo.CategoriaCodigo || modelo.categoria} />
           </dl>
         </CardContent>
       </Card>
 
+      {/* DATOS MÍNIMOS - Información Básica (3 campos) */}
       <Card>
         <CardHeader>
-          <CardTitle>Especificaciones Técnicas</CardTitle>
+          <CardTitle>Información Básica</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="divide-y">
-            <InfoRow label="Tipo" value={modelo.Tipo} />
-            <InfoRow label="Tipo 2" value={modelo.Tipo2} />
-            <InfoRow label="CC" value={modelo.CC} />
-            <InfoRow label="HP" value={modelo.HP} />
-            <InfoRow label="Tracción" value={modelo.Traccion} />
-            <InfoRow label="Caja" value={modelo.Caja} />
-            <InfoRow label="Tipo de Caja" value={modelo.TipoCaja} />
-            <InfoRow label="Turbo" value={modelo.Turbo ? 'Sí' : 'No'} />
+            <InfoRow label="Segmento" value={modelo.SegmentacionAutodata} />
+            <InfoRow label="Carrocería" value={modelo.Carroceria} />
+            <InfoRow label="Origen" value={modelo.OrigenCodigo} />
+          </dl>
+        </CardContent>
+      </Card>
+
+      {/* DATOS MÍNIMOS - Especificaciones del Motor (6 campos) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Especificaciones del Motor</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="divide-y">
+            <InfoRow label="Cilindros" value={modelo.Cilindros} />
+            <InfoRow label="Válvulas" value={modelo.Valvulas} />
+            <InfoRow label="Cilindrada (CC)" value={modelo.CC} />
+            <InfoRow label="Potencia (HP)" value={modelo.HP} />
+            <InfoRow label="Tipo de Motor" value={modelo.TipoMotor} />
+            <InfoRow label="Tipo de Vehículo Eléctrico" value={modelo.TipoVehiculoElectrico || 'N/A'} />
+          </dl>
+        </CardContent>
+      </Card>
+
+      {/* DATOS MÍNIMOS - Datos Físicos y Comerciales (4 campos) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Datos Físicos y Comerciales</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="divide-y">
+            <InfoRow label="Tipo de Caja Automática" value={modelo.TipoCajaAut} />
             <InfoRow label="Puertas" value={modelo.Puertas} />
-            <InfoRow label="Pasajeros" value={modelo.Pasajeros} />
+            <InfoRow label="Asientos" value={modelo.Asientos} />
+            <InfoRow label="Importador" value={modelo.Importador} />
           </dl>
         </CardContent>
       </Card>
 
+      {/* Información adicional de identificación */}
       <Card>
         <CardHeader>
-          <CardTitle>Clasificación</CardTitle>
+          <CardTitle>Códigos de Identificación</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="divide-y">
-            <InfoRow label="Tipo de Vehículo" value={modelo.TipoVehiculo} />
-            <InfoRow label="Segmentación Autodata" value={modelo.SegmentacionAutodata} />
-            <InfoRow label="Segmentación GM" value={modelo.SegmentacionGM} />
-            <InfoRow label="Segmentación Audi" value={modelo.SegmentacionAudi} />
-            <InfoRow label="Segmentación SBI" value={modelo.SegmentacionSBI} />
-            <InfoRow label="Categoría" value={modelo.CategoriaCodigo} />
-            <InfoRow label="Importador" value={modelo.Importador} />
+            <InfoRow label="ID Modelo" value={modelo.ModeloID} />
+            <InfoRow label="Código Autodata" value={modelo.CodigoAutodata} />
+            <InfoRow label="Código Modelo" value={modelo.CodigoModelo} />
           </dl>
         </CardContent>
       </Card>

@@ -17,8 +17,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
 }) => {
   const [formData, setFormData] = useState<Partial<Modelo>>({
     SegmentacionAutodata: modelo.SegmentacionAutodata || '',
-    Modelo1: modelo.Modelo1 || '',
-    Tipo2_Carroceria: modelo.Tipo2_Carroceria || '',
+    Carroceria: modelo.Carroceria || '',
     OrigenCodigo: modelo.OrigenCodigo || '',
     Cilindros: modelo.Cilindros || undefined,
     Valvulas: modelo.Valvulas || undefined,
@@ -36,8 +35,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
   useEffect(() => {
     const newData = {
       SegmentacionAutodata: modelo.SegmentacionAutodata || '',
-      Modelo1: modelo.Modelo1 || '',
-      Tipo2_Carroceria: modelo.Tipo2_Carroceria || '',
+      Carroceria: modelo.Carroceria || '',
       OrigenCodigo: modelo.OrigenCodigo || '',
       Cilindros: modelo.Cilindros || undefined,
       Valvulas: modelo.Valvulas || undefined,
@@ -95,26 +93,11 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Modelo 1 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.Modelo1 || ''}
-                  onChange={(e) => handleChange('Modelo1', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-                  required
-                  disabled={readonly}
-                  placeholder="Ej: Corolla XEI"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Tipo 2 - Carrocería <span className="text-red-500">*</span>
+                  Carrocería <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={formData.Tipo2_Carroceria || ''}
-                  onChange={(e) => handleChange('Tipo2_Carroceria', e.target.value)}
+                  value={formData.Carroceria || ''}
+                  onChange={(e) => handleChange('Carroceria', e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}

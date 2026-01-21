@@ -232,7 +232,7 @@ export function RevisarPage() {
                         </div>
                         <div>
                           <Label>Modelo</Label>
-                          <p className="font-medium">{modeloSeleccionado.Modelo1 || '-'}</p>
+                          <p className="font-medium">{modeloSeleccionado.Carroceria || '-'}</p>
                         </div>
                         <div>
                           <Label>Tipo de Carrocería</Label>

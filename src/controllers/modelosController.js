@@ -327,13 +327,17 @@ exports.update = async (req, res) => {
     
     // Construir SET clause dinámicamente
     const setClauses = [];
+    // Campos permitidos según estructura de 19 campos:
+    // 5 obligatorios: MarcaID, Familia, Modelo, Combustible, CategoriaVehiculo
+    // 14 datos mínimos: SegmentacionAutodata, Carroceria, OrigenCodigo, Cilindros, Valvulas, CC, HP, TipoCajaAut, Puertas, Asientos, TipoMotor, TipoVehiculoElectrico, Importador, PrecioInicial
     const camposPermitidos = [
-      'MarcaID', 'DescripcionModelo', 'Familia', 'OrigenCodigo', 'CombustibleCodigo', 'Anio', 'Tipo', 'Tipo2',
-      'TipoVehiculo', 'SegmentacionAutodata', 'CategoriaCodigo', 'Importador', 'CC', 'HP', 'Turbo',
-      'Traccion', 'Caja', 'TipoCaja', 'Puertas', 'Pasajeros', 'Estado', 'UltimoComentario',
-      // Nuevos campos de Datos Mínimos
-      'Modelo1', 'Tipo2_Carroceria', 'Cilindros', 'Valvulas', 'TipoCajaAut', 'Asientos', 
-      'TipoMotor', 'TipoVehiculoElectrico', 'PrecioInicial'
+      // 5 Campos Obligatorios
+      'MarcaID', 'DescripcionModelo', 'Familia', 'CombustibleCodigo', 'CategoriaVehiculo',
+      // 14 Datos Mínimos
+      'SegmentacionAutodata', 'Carroceria', 'OrigenCodigo', 'Cilindros', 'Valvulas', 'CC', 'HP',
+      'TipoCajaAut', 'Puertas', 'Asientos', 'TipoMotor', 'TipoVehiculoElectrico', 'Importador', 'PrecioInicial',
+      // Campos de Control
+      'Estado', 'UltimoComentario'
     ];
     
     // Mapeo de nombres de campos del frontend a la base de datos

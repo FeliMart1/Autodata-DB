@@ -24,11 +24,11 @@ const ESTADOS = {
   DEFINITIVO: 'definitivo'
 };
 
-// Campos obligatorios para Datos Mínimos (15 campos - Combustible se carga en datos de carga)
+// Campos obligatorios para Datos Mínimos (14 campos)
+// Los 5 campos de carga obligatoria (Marca, Familia, Modelo, Combustible, Categoría) se validan por separado
 const CAMPOS_DATOS_MINIMOS = [
   'SegmentacionAutodata',  // Segmento
-  'Modelo1',
-  'Tipo2_Carroceria',
+  'Carroceria',  // Antes Tipo2_Carroceria
   'OrigenCodigo',  // Origen
   'Cilindros',
   'Valvulas',

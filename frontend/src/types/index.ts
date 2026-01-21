@@ -75,18 +75,16 @@ export interface Modelo {
   DescripcionModelo?: string;
   Modelo?: string; // Alias for DescripcionModelo
   
-  // Datos de Carga (del CSV)
+  // Datos de Carga (5 campos obligatorios)
   Familia?: string;
   OrigenCodigo?: string;
   CombustibleCodigo?: string;
-  CategoriaCodigo?: string;
+  CategoriaVehiculo?: string;
+  CategoriaCodigo?: string;  // Alias de CategoriaVehiculo
   
-  // Datos Mínimos (16 campos obligatorios)
-  Segmento?: string;
-  Modelo1?: string;              // Nombre del modelo
-  Tipo2_Carroceria?: string;
-  Origen?: string;
-  Combustible?: string;
+  // Datos Mínimos (14 campos)
+  SegmentacionAutodata?: string; // Segmento
+  Carroceria?: string;           // Antes Tipo2_Carroceria
   Cilindros?: number;
   Valvulas?: number;
   CC?: number;                   // Cilindrada
@@ -99,7 +97,7 @@ export interface Modelo {
   Importador?: string;
   PrecioInicial?: number;
   
-  // Otros campos técnicos
+  // Otros campos técnicos (legacy/compatibilidad)
   ShortName?: string;
   Precio0KMInicial?: number;
   Anio?: number;
@@ -112,8 +110,7 @@ export interface Modelo {
   Pasajeros?: number;
   TipoVehiculo?: string;
   
-  // Segmentaciones
-  SegmentacionAutodata?: string;
+  // Segmentaciones adicionales (otros sistemas)
   SegmentacionGM?: string;
   SegmentacionAudi?: string;
   SegmentacionSBI?: string;
