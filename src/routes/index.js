@@ -7,6 +7,11 @@ const modelosRoutes = require('./modelosRoutes');
 const equipamientoRoutes = require('./equipamientoRoutes');
 const importRoutes = require('./importRoutes');
 const preciosRoutes = require('./preciosRoutes');
+const departamentosRoutes = require('./departamentosRoutes');
+const familiasRoutes = require('./familias');
+const ventasRoutes = require('./ventasRoutes');
+const empadronamientosRoutes = require('./empadronamientosRoutes');
+const exportRoutes = require('./exportRoutes');
 const { authMiddleware } = require('../middleware/auth');
 
 // Rutas públicas
@@ -18,6 +23,11 @@ router.use('/modelos', authMiddleware, modelosRoutes);
 router.use('/equipamiento', authMiddleware, equipamientoRoutes);
 router.use('/import', authMiddleware, importRoutes);
 router.use('/precios', authMiddleware, preciosRoutes);
+router.use('/departamentos', authMiddleware, departamentosRoutes);
+router.use('/familias', authMiddleware, familiasRoutes);
+router.use('/ventas', authMiddleware, ventasRoutes);
+router.use('/empadronamientos', authMiddleware, empadronamientosRoutes);
+router.use('/export', authMiddleware, exportRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

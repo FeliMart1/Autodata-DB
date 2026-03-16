@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import {  useEffect, useState  } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@components/layout/PageHeader';
 import { Button } from '@components/ui/Button';
@@ -12,6 +12,8 @@ import { EquipamientoView } from '@components/equipamiento/EquipamientoView';
 import { EquipamientoForm } from '@components/equipamiento/EquipamientoForm';
 import { PreciosView } from '@components/precios/PreciosView';
 import { HistorialSection } from '@components/historial/HistorialSection';
+import { VentasHistorial } from '@components/ventas/VentasHistorial';
+import { EmpadronamientosHistorial } from '@components/empadronamientos/EmpadronamientosHistorial';
 import { modeloService } from '@services/modeloService';
 import { Modelo, ModeloEstado, UserRole } from '@types/index';
 import { ArrowLeft, Save, Send, CheckCircle2, XCircle } from 'lucide-react';
@@ -81,14 +83,14 @@ export function ModeloDetailPage() {
           'IMPORTADO',
           'DATOS_MINIMOS',
           'EQUIPAMIENTO_CARGADO',
-          'PARA_CORREGIR',
+          'CORREGIR_EQUIPAMIENTO',
         ].includes(estadoActual);
       
       case UserRole.REVISION:
-        return estadoActual === 'EN_REVISION';
+        return estadoActual === 'REVISION_EQUIPAMIENTO';
       
       case UserRole.APROBACION:
-        return estadoActual === 'EN_APROBACION';
+        return estadoActual === 'MINIMOS_APROBADOS';
       
       default:
         return false;
@@ -115,34 +117,34 @@ export function ModeloDetailPage() {
             label: 'Enviar a Revisión',
             icon: Send,
             variant: 'default',
-            onClick: () => handleCambiarEstado(ModeloEstado.EN_REVISION),
-            estado: 'EN_REVISION',
+            onClick: () => handleCambiarEstado(ModeloEstado.REVISION_EQUIPAMIENTO),
+            estado: 'REVISION_EQUIPAMIENTO',
           });
         }
         break;
 
-      case 'EN_REVISION':
+      case 'REVISION_EQUIPAMIENTO':
         if (user.rol === UserRole.REVISION || user.rol === UserRole.ADMIN) {
           actions.push(
             {
               label: 'Aprobar',
               icon: CheckCircle2,
               variant: 'success',
-              onClick: () => handleCambiarEstado(ModeloEstado.EN_APROBACION),
-              estado: 'EN_APROBACION',
+              onClick: () => handleCambiarEstado(ModeloEstado.MINIMOS_APROBADOS),
+              estado: 'MINIMOS_APROBADOS',
             },
             {
               label: 'Devolver para Corrección',
               icon: XCircle,
               variant: 'destructive',
-              onClick: () => handleCambiarEstado(ModeloEstado.PARA_CORREGIR, 'Requiere correcciones'),
-              estado: 'PARA_CORREGIR',
+              onClick: () => handleCambiarEstado(ModeloEstado.CORREGIR_EQUIPAMIENTO, 'Requiere correcciones'),
+              estado: 'CORREGIR_EQUIPAMIENTO',
             }
           );
         }
         break;
 
-      case 'EN_APROBACION':
+      case 'MINIMOS_APROBADOS':
         if (user.rol === UserRole.APROBACION || user.rol === UserRole.ADMIN) {
           actions.push(
             {
@@ -156,8 +158,8 @@ export function ModeloDetailPage() {
               label: 'Rechazar',
               icon: XCircle,
               variant: 'destructive',
-              onClick: () => handleCambiarEstado(ModeloEstado.PARA_CORREGIR, 'Rechazado por aprobador - Requiere correcciones'),
-              estado: 'PARA_CORREGIR',
+              onClick: () => handleCambiarEstado(ModeloEstado.CORREGIR_EQUIPAMIENTO, 'Rechazado por aprobador - Requiere correcciones'),
+              estado: 'CORREGIR_EQUIPAMIENTO',
             }
           );
         }
@@ -243,9 +245,9 @@ export function ModeloDetailPage() {
                 <h1 className="text-3xl font-bold">
                   {modelo.MarcaNombre || 'Sin marca'} {modelo.DescripcionModelo || modelo.Modelo || modelo.modelo}
                 </h1>
-                {modelo.CodigoAutodata && (
+                {modelo.codigo_autodata && (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-mono font-medium bg-purple-100 text-purple-800">
-                    {modelo.CodigoAutodata}
+                    {modelo.codigo_autodata}
                   </span>
                 )}
               </div>
@@ -257,7 +259,7 @@ export function ModeloDetailPage() {
         }
         actions={
           <div className="flex items-center gap-3">
-            <Badge estado={modelo.Estado || modelo.estado} />
+            <Badge estado={(modelo.Estado || modelo.estado) as ModeloEstado} />
             <span className="text-sm text-muted-foreground">
               Etapa {modelo.Etapa || modelo.etapa}
             </span>
@@ -287,6 +289,8 @@ export function ModeloDetailPage() {
           <TabsTrigger value="datos">Datos Mínimos</TabsTrigger>
           <TabsTrigger value="equipamiento">Equipamiento</TabsTrigger>
           <TabsTrigger value="precios">Precios</TabsTrigger>
+          <TabsTrigger value="ventas">Ventas</TabsTrigger>
+          <TabsTrigger value="empadronamientos">Empadronamientos</TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
         </TabsList>
 
@@ -300,6 +304,14 @@ export function ModeloDetailPage() {
 
         <TabsContent value="precios" className="mt-6">
           <PreciosView modeloId={modelo.ModeloID || modelo.id_modelo} />
+        </TabsContent>
+
+        <TabsContent value="ventas" className="mt-6">
+          <VentasHistorial modeloId={modelo.ModeloID || modelo.id_modelo} />
+        </TabsContent>
+
+        <TabsContent value="empadronamientos" className="mt-6">
+          <EmpadronamientosHistorial modeloId={modelo.ModeloID || modelo.id_modelo} />
         </TabsContent>
 
         <TabsContent value="historial" className="mt-6">

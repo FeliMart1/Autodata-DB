@@ -27,7 +27,15 @@ exports.getAll = async (req, res) => {
     
     // Construir WHERE clause
     let whereConditions = ['m.Activo = 1'];
-    if (estado) whereConditions.push(`m.Estado = N'${estado}'`);
+    if (estado) {
+      if (Array.isArray(estado)) {
+        const estadoList = estado.map(e => `N'${e}'`).join(', ');
+        whereConditions.push(`m.Estado IN (${estadoList})`);
+      } else {
+        const estadosStr = estado.split(',').map(e => `N'${e.trim()}'`).join(', ');
+        whereConditions.push(`m.Estado IN (${estadosStr})`);
+      }
+    }
     if (marcaId) whereConditions.push(`m.MarcaID = ${marcaId}`);
     if (anio) whereConditions.push(`m.Anio = ${anio}`);
     if (tipo) whereConditions.push(`m.Tipo = N'${tipo}'`);
@@ -62,7 +70,8 @@ exports.getAll = async (req, res) => {
         m.Tipo,
         m.CombustibleCodigo AS Combustible,
         m.Estado,
-        m.FechaCreacion,
+          m.ObservacionesRevision,
+          m.FechaCreacion,
         mar.Descripcion AS MarcaNombre,
         mar.CodigoMarca
       FROM Modelo m
@@ -281,7 +290,8 @@ exports.create = async (req, res) => {
         m.Tipo,
         m.CombustibleCodigo AS Combustible,
         m.Estado,
-        m.FechaCreacion,
+          m.ObservacionesRevision,
+          m.FechaCreacion,
         mar.Descripcion AS MarcaNombre,
         mar.CodigoMarca
       FROM Modelo m

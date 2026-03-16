@@ -6,12 +6,16 @@ interface FormularioDatosMinimosProp {
   modelo: Modelo;
   onSave?: (data: Partial<Modelo>) => Promise<void>;
   onCancel?: () => void;
+  onSendRevision?: (data: Partial<Modelo>) => Promise<void>;
   readonly?: boolean;
   onChange?: (data: Partial<Modelo>) => void;
 }
 
-export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({ 
+export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
   modelo,
+  onSave,
+  onCancel,
+  onSendRevision,
   readonly = false,
   onChange
 }) => {
@@ -32,7 +36,29 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
     PrecioInicial: modelo.PrecioInicial || undefined
   });
 
+  // Campos obligatorios (según el backend)
+  const camposObligatorios = [
+    'SegmentacionAutodata', 'Carroceria', 'OrigenCodigo', 'Cilindros', 
+    'Valvulas', 'CC', 'HP', 'TipoCajaAut', 'Puertas', 'Asientos', 'TipoMotor'
+  ];
+
+  // Calcular campos completos
+  const camposCompletos = camposObligatorios.filter(campo => {
+    const valor = formData[campo as keyof Modelo];
+    return valor !== null && valor !== undefined && valor !== '';
+  }).length;
+
   useEffect(() => {
+    console.log('📝 FormularioDatosMinimos: Recargando datos del modelo ID:', modelo.ModeloID);
+    console.log('📋 Datos del modelo recibidos:', {
+      Carroceria: modelo.Carroceria,
+      Cilindros: modelo.Cilindros,
+      HP: modelo.HP,
+      CC: modelo.CC,
+      TipoMotor: modelo.TipoMotor,
+      Puertas: modelo.Puertas
+    });
+    
     const newData = {
       SegmentacionAutodata: modelo.SegmentacionAutodata || '',
       Carroceria: modelo.Carroceria || '',
@@ -49,12 +75,15 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
       Importador: modelo.Importador || '',
       PrecioInicial: modelo.PrecioInicial || undefined
     };
+    
+    console.log('✅ FormularioDatosMinimos: Datos procesados para el formulario:', newData);
     setFormData(newData);
+    
     // Notificar al padre sobre los datos iniciales
     if (onChange) {
       onChange(newData);
     }
-  }, [modelo]);
+  }, [modelo.ModeloID, modelo.Carroceria, modelo.Cilindros, modelo.HP]); // Depender de campos clave para detectar actualizaciones
 
   const handleChange = (field: keyof Modelo, value: string | number | undefined) => {
     const newData = { ...formData, [field]: value };
@@ -67,6 +96,33 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
 
   return (
     <div>
+      {/* Indicador de progreso */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-blue-900">
+            Progreso de Datos Mínimos
+          </span>
+          <span className="text-sm font-semibold text-blue-700">
+            {camposCompletos} / {camposObligatorios.length} campos obligatorios
+          </span>
+        </div>
+        <div className="w-full bg-blue-200 rounded-full h-2">
+          <div 
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(camposCompletos / camposObligatorios.length) * 100}%` }}
+          />
+        </div>
+        {camposCompletos < camposObligatorios.length ? (
+          <p className="text-xs text-blue-700 mt-2">
+            💾 Puedes guardar tu progreso con "Guardar Progreso" y continuar después. Para enviar a revisión necesitas completar los {camposObligatorios.length - camposCompletos} campos restantes.
+          </p>
+        ) : (
+          <p className="text-xs text-green-700 mt-2">
+            ✅ Todos los campos obligatorios completados. Ya puedes enviar a revisión.
+          </p>
+        )}
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Datos Mínimos del Modelo</CardTitle>
@@ -332,6 +388,35 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   max="50"
                   placeholder="5"
                 />
+              </div>
+              <div className="flex gap-2 justify-end mt-6 border-t pt-4">
+                {onSave && (
+                  <button
+                    type="button"
+                    onClick={() => onSave(formData)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                  >
+                    Guardar Progreso
+                  </button>
+                )}
+                {onSendRevision && (
+                  <button
+                    type="button"
+                    onClick={() => onSendRevision(formData)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Enviar a Revisión
+                  </button>
+                )}
+                {onCancel && (
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
               </div>
             </div>
           </div>

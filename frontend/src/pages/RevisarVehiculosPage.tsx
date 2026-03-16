@@ -40,8 +40,8 @@ export function RevisarVehiculosPage() {
     try {
       setIsLoading(true);
       // Cargar solo modelos en estado "en_revision" o "para_corregir"
-      const responseRevision = await modeloService.getAll({ estado: ModeloEstado.EN_REVISION });
-      const responseCorregir = await modeloService.getAll({ estado: ModeloEstado.PARA_CORREGIR });
+      const responseRevision = await modeloService.getAll({ estado: ModeloEstado.REVISION_EQUIPAMIENTO });
+      const responseCorregir = await modeloService.getAll({ estado: ModeloEstado.CORREGIR_EQUIPAMIENTO });
       setModelos([...(responseRevision.data || []), ...(responseCorregir.data || [])]);
     } catch (error: any) {
       addToast('Error al cargar modelos', 'error');
@@ -87,7 +87,7 @@ export function RevisarVehiculosPage() {
     try {
       setIsProcessing(true);
       await modeloService.update(modeloSeleccionado.ModeloID, {
-        Estado: ModeloEstado.PARA_CORREGIR,
+        Estado: ModeloEstado.CORREGIR_EQUIPAMIENTO,
         Observaciones: observaciones
       });
       addToast('Modelo marcado para corrección', 'success');
@@ -158,10 +158,10 @@ export function RevisarVehiculosPage() {
                       {modelo.Anio} • {modelo.Familia || 'Sin familia'}
                     </div>
                     <Badge
-                      variant={modelo.Estado === ModeloEstado.PARA_CORREGIR ? 'destructive' : 'default'}
+                      variant={modelo.Estado === ModeloEstado.CORREGIR_EQUIPAMIENTO ? 'destructive' : 'default'}
                       className="mt-1"
                     >
-                      {modelo.Estado === ModeloEstado.PARA_CORREGIR ? 'Para Corregir' : 'En Revisión'}
+                      {modelo.Estado === ModeloEstado.CORREGIR_EQUIPAMIENTO ? 'Para Corregir' : 'En Revisión'}
                     </Badge>
                   </div>
                 ))

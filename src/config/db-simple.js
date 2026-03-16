@@ -49,6 +49,38 @@ const db = {
     return db.queryRaw(processedQuery);
   },
 
+  // Query con parámetros nombrados (más seguro y legible)
+  query: async (queryString, params = {}) => {
+    let processedQuery = queryString;
+    
+    // Reemplazar parámetros nombrados @nombre con valores escapados
+    for (const [key, param] of Object.entries(params)) {
+      const placeholder = `@${key}`;
+      let value;
+      
+      if (param === null || param === undefined) {
+        value = 'NULL';
+      } else if (typeof param === 'string') {
+        // Escapar comillas simples
+        value = `N'${param.replace(/'/g, "''")}'`;
+      } else if (typeof param === 'number') {
+        value = param.toString();
+      } else if (typeof param === 'boolean') {
+        value = param ? '1' : '0';
+      } else if (param instanceof Date) {
+        value = `'${param.toISOString()}'`;
+      } else {
+        value = `N'${JSON.stringify(param).replace(/'/g, "''")}'`;
+      }
+      
+      // Usar una expresión regular con límites de palabra para reemplazar solo parámetros completos
+      const regex = new RegExp(`${placeholder}(?![a-zA-Z0-9_])`, 'g');
+      processedQuery = processedQuery.replace(regex, value);
+    }
+    
+    return db.queryRaw(processedQuery);
+  },
+
   // Helper para SELECT (retorna array de objetos)
   select: async (table, where = '', orderBy = '') => {
     let query = `SELECT * FROM ${table}`;

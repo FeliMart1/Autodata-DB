@@ -44,6 +44,7 @@ export function MarcasPage() {
   const queryClient = useQueryClient();
 
   // Queries
+  
   const { data: marcas, isLoading } = useQuery({
     queryKey: ['marcas', search],
     queryFn: () => marcasService.getAll(search),
@@ -135,7 +136,7 @@ export function MarcasPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Código</TableHead>
+                  <TableHead>ID</TableHead>
                   <TableHead>Marca</TableHead>
                   <TableHead>País de Origen</TableHead>
                   <TableHead>Fecha Creación</TableHead>
@@ -145,11 +146,7 @@ export function MarcasPage() {
               <TableBody>
                 {marcas.map((marca) => (
                   <TableRow key={marca.MarcaID}>
-                    <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {marca.CodigoMarca || marca.MarcaID.toString().padStart(4, '0')}
-                      </span>
-                    </TableCell>
+                    <TableCell>{marca.MarcaID}</TableCell>
                     <TableCell className="font-medium">{marca.Marca}</TableCell>
                     <TableCell>{marca.PaisOrigen || '-'}</TableCell>
                     <TableCell>

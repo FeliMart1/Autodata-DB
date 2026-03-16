@@ -78,36 +78,17 @@ export function ModelosPage() {
 
   const columns: ColumnDef<Modelo>[] = [
     {
-      accessorKey: 'CodigoAutodata',
-      header: 'Código Autodata',
-      cell: ({ row }) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-purple-100 text-purple-800">
-          {row.original.CodigoAutodata || '-'}
-        </span>
-      ),
-    },
-    {
       accessorKey: 'MarcaNombre',
       header: 'Marca',
       cell: ({ row }) => (
-        <div>
-          <span className="font-medium">{row.original.MarcaNombre || '-'}</span>
-          {row.original.CodigoMarca && (
-            <span className="ml-2 text-xs text-muted-foreground">({row.original.CodigoMarca})</span>
-          )}
-        </div>
+        <span className="font-medium">{row.original.MarcaNombre || '-'}</span>
       ),
     },
     {
       accessorKey: 'Modelo',
       header: 'Modelo',
       cell: ({ row }) => (
-        <div>
-          <span className="font-medium">{row.original.Modelo}</span>
-          {row.original.CodigoModelo && (
-            <span className="ml-2 text-xs text-muted-foreground">({row.original.CodigoModelo})</span>
-          )}
-        </div>
+        <span className="font-medium">{row.original.Modelo}</span>
       ),
     },
     {

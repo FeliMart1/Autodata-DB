@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import {  useState, useEffect  } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
 import { Input } from '@components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/Select';
@@ -34,8 +34,8 @@ export function DatosMinimosForm({ modelo, onUpdate, readOnly = false }: DatosMi
     id_marca: modelo?.MarcaID || modelo?.id_marca || undefined,
     modelo: modelo?.Modelo || modelo?.modelo || '',
     familia: modelo?.Familia || modelo?.familia || '',
-    origen: modelo?.Origen || modelo?.origen || '',
-    combustible: modelo?.Combustible || modelo?.combustible || '',
+    origen: modelo?.Origen || modelo?.origen || modelo?.origen || '',
+    combustible: modelo?.Combustible || modelo?.combustible || modelo?.combustible || '',
     año: modelo?.Anio || modelo?.año || new Date().getFullYear(),
     tipo: modelo?.Tipo || modelo?.tipo || '',
     tipo2: modelo?.Tipo2 || modelo?.tipo2 || '',
@@ -48,8 +48,8 @@ export function DatosMinimosForm({ modelo, onUpdate, readOnly = false }: DatosMi
     puertas: modelo?.Puertas || modelo?.puertas || undefined,
     pasajeros: modelo?.Pasajeros || modelo?.pasajeros || undefined,
     tipo_vehiculo: modelo?.TipoVehiculo || modelo?.tipo_vehiculo || '',
-    segmento: modelo?.Segmento || modelo?.segmento || '',
-    categoria: modelo?.Categoria || modelo?.categoria || '',
+    segmento: modelo?.Segmento || modelo?.segmento || modelo?.segmento || '',
+    categoria: modelo?.Categoria || modelo?.categoria || modelo?.categoria || '',
     importador: modelo?.Importador || modelo?.importador || '',
   });
 
@@ -138,7 +138,7 @@ export function DatosMinimosForm({ modelo, onUpdate, readOnly = false }: DatosMi
       onUpdate(createdModelo.ModeloID);
     } else {
       // Actualizar modelo existente
-      await modeloService.update(modelo.ModeloID || modelo.id_modelo, data);
+      await modeloService.update((modelo.ModeloID || modelo.id_modelo) as number, data);
       onUpdate();
     }
   };

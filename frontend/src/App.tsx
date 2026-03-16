@@ -11,11 +11,11 @@ import { ImportPage } from '@pages/ImportPage';
 import { ModelosPage } from '@pages/ModelosPage';
 import { ModeloDetailPage } from '@pages/ModeloDetailPage';
 import { MarcasPage } from '@pages/MarcasPage';
-import { AgregarDatosPage } from '@pages/AgregarDatosPage';
-import { RevisarVehiculosPage } from '@pages/RevisarVehiculosPage';
-import { UsuariosPage } from '@pages/UsuariosPage';
 import { CargarDatosPage } from '@pages/CargarDatosPage';
 import { RevisarPage } from '@pages/RevisarPage';
+import VentasPage from '@pages/VentasPage';
+import EmpadronamientosPage from '@pages/EmpadronamientosPage';
+import { ExportPage } from '@pages/ExportPage';
 import '@styles/globals.css';
 
 const queryClient = new QueryClient({
@@ -95,26 +95,6 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/agregar-equipamiento"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AgregarDatosPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/agregar-datos"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AgregarDatosPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/cargar-datos"
           element={
             <ProtectedRoute>
@@ -125,21 +105,41 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/revisar"
+          path="/ventas"
           element={
             <ProtectedRoute>
               <Layout>
-                <RevisarPage />
+                <VentasPage />
               </Layout>
             </ProtectedRoute>
           }
         />
         <Route
-          path="/usuarios"
+          path="/empadronamientos"
           element={
             <ProtectedRoute>
               <Layout>
-                <UsuariosPage />
+                <EmpadronamientosPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/export"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ExportPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/revisar-vehiculos"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RevisarPage />
               </Layout>
             </ProtectedRoute>
           }

@@ -11,7 +11,7 @@ import { modeloService } from '@services/modeloService';
 import { equipamientoService } from '@services/equipamientoService';
 import { useToast } from '@context/ToastContext';
 import { Modelo, ModeloEstado } from '@/types';
-import { Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, CheckCircle2 } from 'lucide-react';
 
 export function AgregarEquipamientoPage() {
   const [modelos, setModelos] = useState<Modelo[]>([]);
@@ -29,13 +29,9 @@ export function AgregarEquipamientoPage() {
   const loadModelos = async () => {
     try {
       setIsLoading(true);
-      // Cargar modelos en estado "requisitos_minimos" y "para_corregir"
-      const [responseMinimos, responseCorregir] = await Promise.all([
-        modeloService.getAll({ estado: ModeloEstado.REQUISITOS_MINIMOS }),
-        modeloService.getAll({ estado: ModeloEstado.PARA_CORREGIR })
-      ]);
-      const todosModelos = [...(responseMinimos.data || []), ...(responseCorregir.data || [])];
-      setModelos(todosModelos);
+      // Cargar solo modelos en estado "requisitos_minimos"
+      const response = await modeloService.getAll({ estado: ModeloEstado.DATOS_MINIMOS });
+      setModelos(response.data || []);
     } catch (error: any) {
       addToast('Error al cargar modelos', 'error');
     } finally {
@@ -94,7 +90,7 @@ export function AgregarEquipamientoPage() {
 
       // Cambiar estado del modelo a "en_revision"
       await modeloService.update(modeloSeleccionado.ModeloID, {
-        Estado: ModeloEstado.EN_REVISION
+        Estado: ModeloEstado.REVISION_EQUIPAMIENTO
       });
 
       addToast('Equipamiento guardado y modelo enviado a revisión', 'success');
@@ -209,16 +205,6 @@ export function AgregarEquipamientoPage() {
             </Card>
           ) : (
             <>
-              {modeloSeleccionado.Estado === ModeloEstado.PARA_CORREGIR && modeloSeleccionado.UltimoComentario && (
-                <Alert variant="warning">
-                  <AlertCircle className="h-4 w-4" />
-                  <div>
-                    <h4 className="font-medium">Requiere Correcciones</h4>
-                    <p className="text-sm mt-1">{modeloSeleccionado.UltimoComentario}</p>
-                  </div>
-                </Alert>
-              )}
-
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">

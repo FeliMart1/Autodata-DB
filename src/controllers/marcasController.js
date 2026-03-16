@@ -113,18 +113,17 @@ exports.create = async (req, res) => {
       Origen: paisOrigen && paisOrigen.trim() ? paisOrigen.trim() : null
     };
     
-    const marcaId = await db.insert('Marca', marcaData);
-    logger.info(`Marca creada con ID: ${marcaId} y CodigoMarca: ${codigoMarca}`);
-    
-    logger.info(`Marca creada con ID: ${marcaId}`);
-    
+const nuevaMarcaResult = await db.insert('Marca', marcaData);
+    const resultMarcaId = nuevaMarcaResult.MarcaID || nuevaMarcaResult.id;
+    logger.info(`Marca creada con ID: ${resultMarcaId} y CodigoMarca: ${codigoMarca}`);
+
     // Obtener la marca creada
     const nuevaMarca = await db.queryRaw(
-      `SELECT MarcaID, CodigoMarca, Descripcion AS Marca, Origen AS PaisOrigen, FechaCreacion 
-       FROM Marca WHERE MarcaID = ${marcaId}`
+      `SELECT MarcaID, CodigoMarca, Descripcion AS Marca, Origen AS PaisOrigen, FechaCreacion
+       FROM Marca WHERE MarcaID = ${resultMarcaId}`
     );
-    
-    logger.info(`Marca creada: ${marca} (ID: ${marcaId})`);
+
+    logger.info(`Marca obtenida de BD: ${nuevaMarca.length > 0 ? nuevaMarca[0].Marca : 'desconocida'} (ID: ${resultMarcaId})`);
     
     res.status(201).json({
       success: true,

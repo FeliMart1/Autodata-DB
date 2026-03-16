@@ -2,6 +2,18 @@ import apiClient from './api';
 import { ImportFileData, ImportPreviewResult } from '@types/index';
 
 export const importService = {
+  directImport: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await apiClient.post('/import/excel-modelos', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   previewFile: async (file: File): Promise<ImportPreviewResult> => {
     const formData = new FormData();
     formData.append('file', file);

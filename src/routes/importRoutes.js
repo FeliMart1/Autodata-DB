@@ -3,11 +3,15 @@ const router = express.Router();
 const {
   upload,
   importarCSV,
+  importarExcelAutos,
   listarBatches,
   obtenerBatch,
   procesarBatch,
   eliminarBatch
 } = require('../controllers/importController');
+
+// POST /api/import/excel-modelos - Subir Excel respetando IDs originales
+router.post('/excel-modelos', upload.single('file'), importarExcelAutos);
 
 // POST /api/import/claudio - Upload e importar CSV
 router.post('/claudio', upload.single('file'), importarCSV);

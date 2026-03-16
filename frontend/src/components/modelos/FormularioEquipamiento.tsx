@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { EquipamientoModelo } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
-import { Button } from '@components/ui/Button';
-import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface FormularioEquipamientoProps {
   equipamiento: Partial<EquipamientoModelo>;
-  onSave: (data: Partial<EquipamientoModelo>) => Promise<void>;
+  onSave?: (data: Partial<EquipamientoModelo>) => Promise<void>;
   onCancel?: () => void;
+  onSendRevision?: (data: Partial<EquipamientoModelo>) => Promise<void>;
+  onChange?: (data: Partial<EquipamientoModelo>) => void;
   readonly?: boolean;
 }
 
@@ -16,10 +16,11 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   equipamiento,
   onSave,
   onCancel,
+  onSendRevision,
+  onChange,
   readonly = false
 }) => {
   const [formData, setFormData] = useState<Partial<EquipamientoModelo>>(equipamiento);
-  const [isSaving, setIsSaving] = useState(false);
   const [seccionesAbiertas, setSeccionesAbiertas] = useState<Record<string, boolean>>({
     dimensiones: true,
     mecanica: false,
@@ -45,7 +46,12 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   }, [equipamiento]);
 
   const handleChange = (field: keyof EquipamientoModelo, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    // Notificar al padre sobre los cambios
+    if (onChange) {
+      onChange(newData);
+    }
   };
 
   const toggleSeccion = (seccion: string) => {
@@ -54,13 +60,12 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (readonly) return;
+    if (readonly || !onSave) return;
 
-    setIsSaving(true);
     try {
       await onSave(formData);
-    } finally {
-      setIsSaving(false);
+    } catch (error) {
+      console.error('Error al guardar:', error);
     }
   };
 
@@ -429,39 +434,40 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
                 {renderInput('Kit_herramientas', 'Kit de herramientas', 'text', 'Gato / Llave cruz')}
                 {renderInput('Triangulos_seguridad', 'Triángulos de seguridad', 'text', '2')}
                 {renderInput('Botiquin', 'Botiquín de primeros auxilios', 'text', 'Incluido')}
-                {renderInput('Extintor', 'Extintor', 'text', 'Incluido')}
               </div>
             </div>
           ))}
 
-          {/* Botones de acción */}
-          {!readonly && (
-            <div className="flex gap-3 justify-end pt-4 border-t">
-              {onCancel && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  disabled={isSaving}
-                >
-                  Cancelar
-                </Button>
-              )}
-              <Button
+          {/* Botones internos agregados para permitir guardado */}
+          <div className="flex gap-2 justify-end mt-6 border-t pt-4">
+            {onSave && (
+              <button
                 type="submit"
-                disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
               >
-                {isSaving ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Guardando...
-                  </>
-                ) : (
-                  'Guardar Equipamiento'
-                )}
-              </Button>
-            </div>
-          )}
+                Guardar Progreso
+              </button>
+            )}
+            {onSendRevision && (
+              <button
+                type="button"
+                onClick={() => onSendRevision(formData)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                disabled={readonly}
+              >
+                Enviar a Revisión
+              </button>
+            )}
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         </CardContent>
       </Card>
     </form>

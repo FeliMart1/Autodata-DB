@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ModeloEstado } from '@/types';
+import { ModeloEstado } from '@types/index';
 import { cn } from '@utils/cn';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -9,9 +9,14 @@ interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const estadoVariants: Record<ModeloEstado, { variant: BadgeProps['variant']; label: string }> = {
   [ModeloEstado.IMPORTADO]: { variant: 'info', label: 'Importado' },
-  [ModeloEstado.REQUISITOS_MINIMOS]: { variant: 'secondary', label: 'Requisitos Mínimos' },
-  [ModeloEstado.EN_REVISION]: { variant: 'warning', label: 'En Revisión' },
-  [ModeloEstado.PARA_CORREGIR]: { variant: 'destructive', label: 'Para Corregir' },
+  [ModeloEstado.CREADO]: { variant: 'secondary', label: 'Creado' },
+  [ModeloEstado.DATOS_MINIMOS]: { variant: 'secondary', label: 'Datos Mínimos' },
+  [ModeloEstado.REVISION_MINIMOS]: { variant: 'warning', label: 'Revisión Mínimos' },
+  [ModeloEstado.CORREGIR_MINIMOS]: { variant: 'destructive', label: 'Corregir Mínimos' },
+  [ModeloEstado.MINIMOS_APROBADOS]: { variant: 'success', label: 'Mínimos Aprobados' },
+  [ModeloEstado.EQUIPAMIENTO_CARGADO]: { variant: 'info', label: 'Equipamiento Cargado' },
+  [ModeloEstado.REVISION_EQUIPAMIENTO]: { variant: 'warning', label: 'Revisión Equipamiento' },
+  [ModeloEstado.CORREGIR_EQUIPAMIENTO]: { variant: 'destructive', label: 'Corregir Equipamiento' },
   [ModeloEstado.DEFINITIVO]: { variant: 'success', label: 'Definitivo' },
 };
 
@@ -19,7 +24,7 @@ function Badge({ className, variant = 'default', estado, children, ...props }: B
   const actualVariant = estado && estadoVariants[estado] ? estadoVariants[estado].variant : variant;
   const displayText = estado && estadoVariants[estado] ? estadoVariants[estado].label : children;
 
-  const variants: Record<NonNullable<BadgeProps['variant']>, string> = {
+  const variants = {
     default: 'bg-primary text-primary-foreground hover:bg-primary/80',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
@@ -33,7 +38,7 @@ function Badge({ className, variant = 'default', estado, children, ...props }: B
     <div
       className={cn(
         'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-        actualVariant ? variants[actualVariant] : variants.default,
+        variants[actualVariant],
         className
       )}
       {...props}

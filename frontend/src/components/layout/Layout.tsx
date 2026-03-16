@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import {  useState  } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   Upload,
   Car,
   CheckCircle2,
+  ShieldCheck,
   DollarSign,
   BarChart3,
   Users,
@@ -15,8 +16,11 @@ import {
   Moon,
   Sun,
   Tag,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import { UserRole } from '@types/index';
 import { cn } from '@utils/cn';
 
 const navigation = [
@@ -24,10 +28,12 @@ const navigation = [
   { name: 'Marcas', href: '/marcas', icon: Tag, roles: ['all'] },
   { name: 'Importar', href: '/import', icon: Upload, roles: ['all'] },
   { name: 'Modelos', href: '/modelos', icon: Car, roles: ['all'] },
-  { name: 'Agregar Datos', href: '/agregar-datos', icon: Settings, roles: ['all'] },
-  { name: 'Revisar Vehículos', href: '/revisar', icon: CheckCircle2, roles: ['all'] },
+  { name: 'Cargar Datos Modelos', href: '/cargar-datos', icon: Settings, roles: ['all'] },
+  { name: 'Revisar Vehiculos', href: '/revisar-vehiculos', icon: CheckCircle2, roles: ['all'] },
   { name: 'Precios', href: '/precios', icon: DollarSign, roles: ['all'] },
   { name: 'Ventas', href: '/ventas', icon: BarChart3, roles: ['all'] },
+  { name: 'Empadronamientos', href: '/empadronamientos', icon: FileText, roles: ['all'] },
+  { name: 'Exportar Datos', href: '/export', icon: Download, roles: ['all'] },
   { name: 'Usuarios', href: '/usuarios', icon: Users, roles: ['all'] },
 ];
 
@@ -114,12 +120,12 @@ export function Layout({ children }: LayoutProps) {
           {/* User section */}
           <div className="border-t border-border p-4">
             <div className="mb-3 flex items-center gap-3 px-2">
-              <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-                {user?.nombre?.charAt(0)?.toUpperCase()}{user?.username?.charAt(0)?.toUpperCase()}
+              <div className="h-10 w-10 border rounded-full bg-primary flex flex-row items-center justify-center text-primary-foreground font-semibold">
+                {user?.nombre?.charAt(0)}
               </div>
               <div className="flex-1 overflow-hidden">
                 <p className="text-sm font-medium truncate">
-                  {user?.nombre || user?.username}
+                  {user?.nombre}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
                   {user?.email}

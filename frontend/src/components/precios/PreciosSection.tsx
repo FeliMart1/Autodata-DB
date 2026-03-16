@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import {  useEffect, useState  } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
 import { Button } from '@components/ui/Button';
 import { Input } from '@components/ui/Input';
@@ -39,7 +39,7 @@ export function PreciosSection({ modeloId, readOnly = false }: PreciosSectionPro
   const loadPrecios = async () => {
     try {
       const data = await precioService.getPreciosByModelo(modeloId);
-      setPrecios(data);
+      setPrecios(data as any);
     } catch (error) {
       console.error('Error loading precios:', error);
     } finally {
@@ -55,7 +55,7 @@ export function PreciosSection({ modeloId, readOnly = false }: PreciosSectionPro
 
     setIsSaving(true);
     try {
-      await precioService.createPrecioModelo({
+      await precioService.createPrecio({
         id_modelo: modeloId,
         precio: Number(newPrecio.precio),
         vigencia_desde: newPrecio.vigencia_desde,

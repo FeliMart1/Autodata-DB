@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import {  useEffect, useState  } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
 import { Checkbox } from '@components/ui/Checkbox';
 import { Button } from '@components/ui/Button';
@@ -140,7 +140,7 @@ export function EquipamientoForm({ modeloId, onUpdate, readOnly = false }: Equip
 
   const loadEquipamiento = async () => {
     try {
-      const data = await equipamientoService.getByModelo(modeloId);
+      const data = await equipamientoService.getByModeloId(modeloId);
       if (data) {
         setEquipamiento(data);
       }
@@ -177,7 +177,7 @@ export function EquipamientoForm({ modeloId, onUpdate, readOnly = false }: Equip
     const updates: Partial<EquipamientoModelo> = {};
     category.fields.forEach((field) => {
       if (field.type !== 'number' && field.type !== 'text') {
-        updates[field.key] = selectAll;
+        updates[field.key] = selectAll ? 1 : 0;
       }
     });
     setEquipamiento((prev) => ({ ...prev, ...updates }));

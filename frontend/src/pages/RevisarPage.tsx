@@ -9,6 +9,8 @@ import { Textarea } from '@components/ui/Textarea';
 import { Label } from '@components/ui/label';
 import { modeloService } from '@services/modeloService';
 import estadoService from '@services/estadoService';
+import { equipamientoService } from '@services/equipamientoService';
+import { FormularioEquipamiento } from '@components/modelos/FormularioEquipamiento';
 import { useToast } from '@context/ToastContext';
 import { Modelo, ModeloEstado } from '@/types';
 import { Search, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
@@ -17,6 +19,7 @@ import { Input } from '@components/ui/Input';
 export function RevisarPage() {
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [modeloSeleccionado, setModeloSeleccionado] = useState<Modelo | null>(null);
+  const [equipamiento, setEquipamiento] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,6 +59,14 @@ export function RevisarPage() {
       const detalleCompleto = await modeloService.getById(modelo.ModeloID);
       setModeloSeleccionado(detalleCompleto);
       setObservaciones('');
+
+      // Cargar equipamiento
+      try {
+        const equipData = await equipamientoService.getByModeloId(modelo.ModeloID);
+        setEquipamiento(equipData || {});
+      } catch (e) {
+        setEquipamiento({});
+      }
 
       // Determinar qué tab mostrar según el estado
       if (detalleCompleto.Estado === ModeloEstado.REVISION_MINIMOS) {
@@ -184,7 +195,7 @@ export function RevisarPage() {
                     }`}
                   >
                     <div className="font-medium">{modelo.MarcaNombre} {modelo.DescripcionModelo}</div>
-                    <div className="text-sm text-gray-500">{modelo.CodigoAutodata}</div>
+                    <div className="text-sm text-gray-500">{modelo.codigo_autodata}</div>
                     <div className="mt-1">
                       <span className={`inline-block px-2 py-1 text-xs rounded ${
                         estadoService.getEstadoBadgeColor(modelo.Estado)
@@ -236,7 +247,7 @@ export function RevisarPage() {
                         </div>
                         <div>
                           <Label>Tipo de Carrocería</Label>
-                          <p className="font-medium">{modeloSeleccionado.Tipo2_Carroceria || '-'}</p>
+                          <p className="font-medium">{modeloSeleccionado.Carroceria || '-'}</p>
                         </div>
                         <div>
                           <Label>Origen</Label>
@@ -292,10 +303,15 @@ export function RevisarPage() {
 
                   <TabsContent value="equipamiento">
                     <div className="space-y-4 mt-4">
-                      <p className="text-sm text-gray-600">
-                        Revisión de equipamiento (150+ campos)
-                      </p>
-                      {/* TODO: Mostrar campos de equipamiento */}
+                        <p className="text-sm text-gray-600 mb-4">
+                          Revisión de equipamiento ({equipamiento ? Object.keys(equipamiento).length - 3 : 0} campos)
+                        </p>
+                        {equipamiento && (
+                          <FormularioEquipamiento
+                            equipamiento={equipamiento}
+                            readonly={true}
+                          />
+                        )}
                     </div>
                   </TabsContent>
                 </Tabs>

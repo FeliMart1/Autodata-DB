@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/Tabs';
 import { Badge } from '@components/ui/Badge';
 import { modeloService } from '@services/modeloService';
 import estadoService from '@services/estadoService';
+import { equipamientoService } from '@services/equipamientoService';
 import { useToast } from '@context/ToastContext';
 import { Modelo, ModeloEstado } from '@/types';
 import { Search, Send, AlertCircle, FileText } from 'lucide-react';
@@ -54,12 +55,11 @@ export function CargarDatosPage() {
 
   const loadEquipamiento = async (modeloId: number) => {
     try {
-      // TODO: Crear servicio para obtener equipamiento
-      // const equipamientoData = await equipamientoService.getByModeloId(modeloId);
-      // setEquipamiento(equipamientoData);
-      setEquipamiento({}); // Por ahora vacío
+      const equipamientoData = await equipamientoService.getByModeloId(modeloId);
+      setEquipamiento(equipamientoData || {});
     } catch (error: any) {
       addToast('Error al cargar equipamiento', 'error');
+      setEquipamiento({});
     }
   };
 
@@ -87,13 +87,28 @@ export function CargarDatosPage() {
     }
   };
 
+  const handleSelectModelo = async (modelo: Modelo) => {
+    try {
+      setIsLoading(true);
+      // Fetch completo para obtener Cylindros, CC, HP, que no vienen en el getAll
+      const modeloCompleto = await modeloService.getById(modelo.ModeloID);
+      setModeloSeleccionado(modeloCompleto);
+    } catch (error) {
+      console.error('Error fetching full model:', error);
+      addToast('Error al cargar datos del modelo', 'error');
+      setModeloSeleccionado(modelo); // Fallback to basic
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGuardarDatosMinimos = async (datosActualizados: Partial<Modelo>) => {
     if (!modeloSeleccionado) return;
 
     setIsSaving(true);
     try {
       await modeloService.update(modeloSeleccionado.ModeloID, datosActualizados);
-      addToast('Datos guardados correctamente', 'success');
+      addToast('Borrador guardado correctamente. Puedes continuar más tarde.', 'success');
       
       // Recargar el modelo actualizado
       const modeloActualizado = await modeloService.getById(modeloSeleccionado.ModeloID);
@@ -112,10 +127,17 @@ export function CargarDatosPage() {
 
     setIsSaving(true);
     try {
-      // TODO: Implementar guardado de equipamiento
-      await modeloService.update(modeloSeleccionado.ModeloID, { Estado: ModeloEstado.EQUIPAMIENTO_CARGADO });
-      addToast('Equipamiento guardado correctamente', 'success');
-      loadModelos();
+      // Save equipamiento data
+      if (equipamiento && equipamiento.EquipamientoID) {
+        await equipamientoService.update(modeloSeleccionado.ModeloID, datosEquipamiento);
+      } else {
+        await equipamientoService.create({ ...datosEquipamiento, modeloId: modeloSeleccionado.ModeloID });
+      }
+      
+      // Recargar equipamiento
+      const req = await equipamientoService.getByModeloId(modeloSeleccionado.ModeloID);
+      setEquipamiento(req || {});
+
     } catch (error: any) {
       addToast(error.response?.data?.message || 'Error al guardar equipamiento', 'error');
       throw error;
@@ -124,24 +146,39 @@ export function CargarDatosPage() {
     }
   };
 
-  const handleEnviarARevision = async () => {
+const handleEnviarARevision = async (formData: any) => {
     if (!modeloSeleccionado) return;
 
     setIsSaving(true);
     try {
-      // Determinar el estado de revisión según el estado actual
       let nuevoEstado: ModeloEstado;
-      if (
-        modeloSeleccionado.Estado === ModeloEstado.DATOS_MINIMOS ||
-        modeloSeleccionado.Estado === ModeloEstado.CORREGIR_MINIMOS
-      ) {
-        // Primero validar datos mínimos
-        await estadoService.validarDatosMinimos(modeloSeleccionado.ModeloID);
+      const isFaseMinimos = [
+        ModeloEstado.DATOS_MINIMOS,
+        ModeloEstado.IMPORTADO,
+        ModeloEstado.CREADO,
+        ModeloEstado.CORREGIR_MINIMOS
+      ].includes(modeloSeleccionado.Estado);
+
+      if (isFaseMinimos) {
+        // Guardar antes de enviar (evita que falten campos si no han guardado explícitamente)
+        await modeloService.update(modeloSeleccionado.ModeloID, formData);
+
+        // Validar datos mínimos antes de enviar usando el backend
+        const validacion = await estadoService.validarDatosMinimos(modeloSeleccionado.ModeloID);
+        if (!validacion.data.datosCompletos) {
+          const camposFaltantes = validacion.data.camposFaltantes.join(', ');
+          addToast(`Faltan campos obligatorios: ${camposFaltantes}`, 'error');
+          return;
+        }
         nuevoEstado = ModeloEstado.REVISION_MINIMOS;
       } else if (
-        modeloSeleccionado.Estado === ModeloEstado.EQUIPAMIENTO_CARGADO ||
-        modeloSeleccionado.Estado === ModeloEstado.CORREGIR_EQUIPAMIENTO
+        [ModeloEstado.EQUIPAMIENTO_CARGADO, ModeloEstado.CORREGIR_EQUIPAMIENTO, ModeloEstado.MINIMOS_APROBADOS].includes(modeloSeleccionado.Estado)
       ) {
+        if (equipamiento && equipamiento.EquipamientoID) {
+          await equipamientoService.update(modeloSeleccionado.ModeloID, formData);
+        } else {
+          await equipamientoService.create({ ...formData, modeloId: modeloSeleccionado.ModeloID });
+        }
         nuevoEstado = ModeloEstado.REVISION_EQUIPAMIENTO;
       } else {
         addToast('El modelo no está en un estado válido para enviar a revisión', 'error');
@@ -156,12 +193,12 @@ export function CargarDatosPage() {
       setModeloSeleccionado(null);
       loadModelos();
     } catch (error: any) {
-      addToast(
-        error.response?.data?.message || 
-        error.response?.data?.camposFaltantes?.join(', ') || 
-        'Error al enviar a revisión', 
-        'error'
-      );
+      console.error('Error al enviar a revisión:', error);
+      const errorMsg = error.response?.data?.message || 
+                      error.response?.data?.detalles?.join(', ') ||
+                      error.message ||
+                      'Error al enviar a revisión';
+      addToast(errorMsg, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -217,7 +254,7 @@ export function CargarDatosPage() {
               {modelosFiltrados.map(modelo => (
                 <div
                   key={modelo.ModeloID}
-                  onClick={() => setModeloSeleccionado(modelo)}
+                    onClick={() => handleSelectModelo(modelo)}
                   className={`p-4 border rounded-lg cursor-pointer hover:bg-accent transition-colors ${
                     modeloSeleccionado?.ModeloID === modelo.ModeloID ? 'bg-accent border-primary' : ''
                   }`}
@@ -226,8 +263,8 @@ export function CargarDatosPage() {
                     <div className="flex-1">
                       <p className="font-semibold">{modelo.MarcaNombre}</p>
                       <p className="text-sm text-gray-600">{modelo.DescripcionModelo}</p>
-                      {modelo.CodigoAutodata && (
-                        <p className="text-xs text-gray-500 mt-1">{modelo.CodigoAutodata}</p>
+                      {modelo.codigo_autodata && (
+                        <p className="text-xs text-gray-500 mt-1">{modelo.codigo_autodata}</p>
                       )}
                     </div>
                     <Badge color={estadoService.getEstadoBadgeColor(modelo.Estado)}>
@@ -268,42 +305,64 @@ export function CargarDatosPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <Tabs value={tabActiva} onValueChange={(v) => setTabActiva(v as 'minimos' | 'equipamiento')}>
-                  <TabsList>
-                    <TabsTrigger value="minimos">Datos Mínimos (16 campos)</TabsTrigger>
-                    <TabsTrigger value="equipamiento">Equipamiento (150+ campos)</TabsTrigger>
-                  </TabsList>
+                  <Tabs value={tabActiva} onValueChange={(v) => { if (v === 'equipamiento' && !isFaseEquipamiento) { addToast('Se requieren datos mínimos primero', 'error'); return; } setTabActiva(v as 'minimos' | 'equipamiento'); }}>
+  {(() => {
+    const isFaseMinimos = [
+      ModeloEstado.IMPORTADO,
+      ModeloEstado.CREADO,
+      ModeloEstado.DATOS_MINIMOS,
+      ModeloEstado.CORREGIR_MINIMOS
+    ].includes(modeloSeleccionado.Estado);
 
-                  <TabsContent value="minimos">
-                    <FormularioDatosMinimos
-                      modelo={modeloSeleccionado}
-                      onSave={handleGuardarDatosMinimos}
-                      onCancel={() => setModeloSeleccionado(null)}
-                    />
-                    
-                    <div className="flex gap-2 mt-4">
-                      <Button onClick={handleEnviarARevision} disabled={isSaving} variant="default">
-                        <Send className="h-4 w-4 mr-2" />
-                        Enviar a Revisión
-                      </Button>
-                    </div>
-                  </TabsContent>
+    const isFaseEquipamiento = [
+      ModeloEstado.MINIMOS_APROBADOS,
+      ModeloEstado.EQUIPAMIENTO_CARGADO,
+      ModeloEstado.CORREGIR_EQUIPAMIENTO
+    ].includes(modeloSeleccionado.Estado);
 
-                  <TabsContent value="equipamiento">
-                    <FormularioEquipamiento
-                      equipamiento={equipamiento || {}}
-                      onSave={handleGuardarEquipamiento}
-                      onCancel={() => setModeloSeleccionado(null)}
-                    />
-                    
-                    <div className="flex gap-2 mt-4">
-                      <Button onClick={handleEnviarARevision} disabled={isSaving} variant="default">
-                        <Send className="h-4 w-4 mr-2" />
-                        Enviar a Revisión
-                      </Button>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+    return (
+      <>
+        <TabsList>
+          <TabsTrigger value="minimos">Datos M\u00ednimos (16 campos)</TabsTrigger>
+          <TabsTrigger value="equipamiento" disabled={!isFaseEquipamiento}>Equipamiento (150+ campos)</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="minimos">
+          {modeloSeleccionado.Estado === ModeloEstado.CORREGIR_MINIMOS && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
+              <h4 className="font-semibold flex items-center gap-2"><AlertCircle className="w-5 h-5"/> Correcciones solicitadas (Mínimos)</h4>
+              <p className="mt-1">{(modeloSeleccionado as any).ObservacionesRevision || "Revisa los datos mínimos, se han solicitado correcciones."}</p>
+            </div>
+          )}
+          <FormularioDatosMinimos
+            modelo={modeloSeleccionado}
+            onSave={isFaseMinimos ? handleGuardarDatosMinimos : undefined}
+            onCancel={() => setModeloSeleccionado(null)}
+            readonly={!isFaseMinimos}
+            onSendRevision={isFaseMinimos ? handleEnviarARevision : undefined}
+          />
+        </TabsContent>
+
+        <TabsContent value="equipamiento">
+          {modeloSeleccionado.Estado === ModeloEstado.CORREGIR_EQUIPAMIENTO && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
+              <h4 className="font-semibold flex items-center gap-2"><AlertCircle className="w-5 h-5"/> Correcciones solicitadas (Equipamiento)</h4>
+              <p className="mt-1">{(modeloSeleccionado as any).ObservacionesRevision || "Revisa el equipamiento, se han solicitado correcciones."}</p>
+            </div>
+          )}
+
+          <FormularioEquipamiento
+            equipamiento={equipamiento || {}}
+            onSave={isFaseEquipamiento ? handleGuardarEquipamiento : undefined}
+            onCancel={() => setModeloSeleccionado(null)}
+            readonly={!isFaseEquipamiento}
+            onSendRevision={isFaseEquipamiento ? handleEnviarARevision : undefined}
+          />
+        </TabsContent>
+      </>
+    );
+  })()}
+</Tabs>
               </div>
             )}
           </CardContent>

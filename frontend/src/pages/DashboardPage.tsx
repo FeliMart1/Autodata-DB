@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import {  useEffect, useState  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
 import { StatCard } from '@components/layout/StatCard';
@@ -251,12 +251,12 @@ export function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {modelo.CodigoAutodata && (
+                    {modelo.codigo_autodata && (
                       <span className="text-xs font-mono px-2 py-1 rounded bg-purple-100 text-purple-800">
-                        {modelo.CodigoAutodata}
+                        {modelo.codigo_autodata}
                       </span>
                     )}
-                    <Badge estado={modelo.Estado} />
+                    <Badge estado={modelo.Estado as ModeloEstado} />
                     <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                 </div>

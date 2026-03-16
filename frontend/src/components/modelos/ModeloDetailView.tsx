@@ -32,7 +32,7 @@ export function ModeloDetailView({ modelo }: ModeloDetailViewProps) {
             <InfoRow label="Familia" value={modelo.Familia} />
             <InfoRow label="Modelo" value={modelo.Modelo || modelo.DescripcionModelo} />
             <InfoRow label="Combustible" value={modelo.CombustibleCodigo} />
-            <InfoRow label="Categoría de Vehículo" value={modelo.CategoriaVehiculo || modelo.CategoriaCodigo || modelo.categoria} />
+            <InfoRow label="Categoría de Vehículo" value={modelo.CategoriaVehiculo || modelo.categoria || modelo.CategoriaCodigo || modelo.categoria} />
           </dl>
         </CardContent>
       </Card>
@@ -91,7 +91,7 @@ export function ModeloDetailView({ modelo }: ModeloDetailViewProps) {
         <CardContent>
           <dl className="divide-y">
             <InfoRow label="ID Modelo" value={modelo.ModeloID} />
-            <InfoRow label="Código Autodata" value={modelo.CodigoAutodata} />
+            <InfoRow label="Código Autodata" value={modelo.codigo_autodata} />
             <InfoRow label="Código Modelo" value={modelo.CodigoModelo} />
           </dl>
         </CardContent>

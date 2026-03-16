@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import {  useState, useCallback  } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { PageHeader } from '@components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
@@ -29,21 +29,16 @@ export function ImportPage() {
     setIsLoading(true);
 
     try {
-      const result = await importService.previewFile(selectedFile);
-      setPreview(result);
-      
-      if (result.errorRows > 0) {
-        addToast(`${result.errorRows} filas con errores detectados`, 'warning');
-      } else {
-        addToast('Archivo validado correctamente', 'success');
-      }
+      const result = await importService.directImport(selectedFile);
+      addToast('Importación exitosa: ' + (result.data?.modelos || 0) + ' modelos creados', 'success');
+      navigate('/modelos');
     } catch (error: any) {
       addToast(error.response?.data?.message || 'Error al procesar el archivo', 'error');
       setFile(null);
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, navigate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

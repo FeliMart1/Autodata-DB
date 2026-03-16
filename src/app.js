@@ -3,20 +3,31 @@ const cors = require('cors');
 const path = require('path');
 const logger = require('./config/logger');
 const routes = require('./routes');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Middlewares de seguridad
+app.use(cors({
+  origin: ['http://localhost:3001', 'https://2410773a5382.ngrok-free.app'],
+  credentials: true
+}));
+
+// Rate limiting general para toda la API
+app.use('/api/', apiLimiter);
+
+app.use(express.json({ limit: '10mb' })); // Limitar tamaño de payload
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Seguridad: Ocultar header X-Powered-By
+app.disable('x-powered-by');
 
 // Servir archivos estáticos (frontend)
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Logging de requests
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`);
+  logger.info(`${req.method} ${req.path} - IP: ${req.ip}`);
   next();
 });
 

@@ -3,7 +3,9 @@ const { parse } = require('csv-parse/sync');
 const db = require('../config/db-simple');
 const logger = require('../config/logger');
 
-// Configuración de multer para archivos en memoria
+const xlsx = require('xlsx');
+
+// Configuration de multer para archivos en memoria
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -11,10 +13,13 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB máximo
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+    const isCsv = file.mimetype === 'text/csv' || file.originalname.endsWith('.csv');
+    const isExcel = file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.originalname.endsWith('.xlsx');
+    
+    if (isCsv || isExcel) {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten archivos CSV'), false);
+      cb(new Error('Solo se permiten archivos CSV o Excel (.xlsx)'), false);
     }
   }
 });
@@ -409,9 +414,177 @@ const eliminarBatch = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/import/excel-modelos
+ * Importa modelos desde un Excel validando y manteniendo IDs (MARCOD, MARMODCOD, FAMCOD)
+ */
+const importarExcelAutos = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se proporcionó ningún archivo excel' });
+    }
+
+    const { buffer } = req.file;
+    const xlsx = require('xlsx');
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    // header: 1 returns array of arrays
+    const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+
+    if (rows.length < 2) {
+      return res.status(400).json({ success: false, message: 'El archivo Excel está vacío o no tiene datos' });
+    }
+
+    const headers = rows[0];
+    const getIdx = (name) => headers.findIndex(h => h === name);
+
+    const idx_MARCOD = getIdx('MARCOD');
+    const idx_MARDSC = getIdx('MARDSC');
+    const idx_MARMODCOD = getIdx('MARMODCOD');
+    const idx_MARMODDSC = getIdx('MARMODDSC');
+    const idx_FAMCOD = getIdx('FAMCOD');
+    const idx_FAMDSC = getIdx('FAMDSC');
+    const idx_COMBCOD = getIdx('COMBCOD');
+    const idx_COMBDSC = getIdx('COMBDSC');
+    const idx_CATCOD = getIdx('CATCOD');
+    const idx_CATDSC = getIdx('CATDSC');
+    const idx_CATAIGCOD = getIdx('CATAIGCOD');
+    const idx_CATAIGDSC = getIdx('CATAIGDSC');
+
+    if (idx_MARCOD === -1 || idx_MARDSC === -1 || idx_MARMODCOD === -1 || idx_MARMODDSC === -1) {
+      return res.status(400).json({ success: false, message: 'Faltan columnas requeridas (MARCOD, MARDSC, MARMODCOD, MARMODDSC)' });
+    }
+
+    // Usaremos Map para validaciones
+    const marcasMap = new Map(); // MARCOD -> MARDSC
+    const familiasMap = new Map(); // FAMCOD -> { MarcaID, Nombre }
+    const modelosArray = []; // Para insertar después
+
+    // Parse data
+    for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length === 0 || r[idx_MARCOD] == null) continue;
+  
+        const marcaId = parseInt(r[idx_MARCOD], 10);
+        const marcaDesc = r[idx_MARDSC] ? String(r[idx_MARDSC]).trim() : '';
+        marcasMap.set(marcaId, marcaDesc);
+  
+        let familiaId = null;
+        let familiaDesc = '';
+        if (idx_FAMCOD !== -1 && r[idx_FAMCOD] != null && !isNaN(parseInt(r[idx_FAMCOD], 10))) {
+          familiaId = parseInt(r[idx_FAMCOD], 10);
+          familiaDesc = r[idx_FAMDSC] ? String(r[idx_FAMDSC]).trim() : '';
+          familiasMap.set(familiaId, { MarcaID: marcaId, Nombre: familiaDesc });
+        }
+  
+        const combustibleDesc = idx_COMBDSC !== -1 && r[idx_COMBDSC] ? String(r[idx_COMBDSC]).trim() : null;
+        let categoriaDesc = null;
+        if (idx_CATDSC !== -1 && r[idx_CATDSC]) {
+          categoriaDesc = String(r[idx_CATDSC]).trim();
+        } else if (idx_CATAIGDSC !== -1 && r[idx_CATAIGDSC]) {
+          categoriaDesc = String(r[idx_CATAIGDSC]).trim();
+        }
+  
+        if (!isNaN(parseInt(r[idx_MARMODCOD], 10))) {
+            modelosArray.push({
+                modeloId: parseInt(r[idx_MARMODCOD], 10),
+                marcaId: marcaId,
+                familiaId: familiaId,
+                familiaDesc: familiaDesc,
+                modeloDesc: r[idx_MARMODDSC] ? String(r[idx_MARMODDSC]).trim() : '',
+                combustible: combustibleDesc,
+                categoria: categoriaDesc
+            });
+        }
+    }
+
+    // ==========================================
+    // FASE 1: Validación Pre-vuelo (Conflictos)
+    // ==========================================
+    
+    // 1. Validar Marcas
+    for (const [mId, mDesc] of marcasMap.entries()) {
+      const dbMarcaRes = await db.queryWithParams('SELECT Descripcion FROM Marca WHERE MarcaID = @p0', [mId]);
+      if (dbMarcaRes.length > 0) {
+        const dbMarcaName = dbMarcaRes[0].Descripcion;
+        const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!normalize(dbMarcaName).includes(normalize(mDesc.substring(0,4))) && !normalize(mDesc).includes(normalize(dbMarcaName.substring(0,4)))) {
+          return res.status(400).json({ success: false, message: `Error de conflicto: Estás intentando cargar la marca "${mDesc}" con el ID ${mId}, pero en tu base de datos el ID ${mId} pertenece a "${dbMarcaName}".` });
+        }
+      }
+    }
+
+    // 2. Validar Modelos
+    for (const mod of modelosArray) {
+      const dbModRes = await db.queryWithParams('SELECT DescripcionModelo FROM Modelo WHERE ModeloID = @p0', [mod.modeloId]);
+      if (dbModRes.length > 0) {
+        const dbModName = dbModRes[0].DescripcionModelo;
+        if (!dbModName.toLowerCase().includes(mod.modeloDesc.toLowerCase().substring(0,4)) && !mod.modeloDesc.toLowerCase().includes(dbModName.toLowerCase().substring(0,4))) {
+            return res.status(400).json({ success: false, message: `Error de conflicto: Estás intentando cargar el modelo "${mod.modeloDesc}" con el ID ${mod.modeloId}, pero en tu base de datos el ID ${mod.modeloId} pertenece a "${dbModName}".` });
+        }
+      }
+    }
+
+    // ==========================================
+    // FASE 2: Inserción Respetando IDs
+    // ==========================================
+    const usuarioId = req.user ? req.user.UsuarioID : 1;
+    let creados = { marcas: 0, familias: 0, modelos: 0 };
+
+    for (const [mId, mDesc] of marcasMap.entries()) {
+      const exists = await db.queryWithParams('SELECT 1 FROM Marca WHERE MarcaID = @p0', [mId]);
+      if (exists.length === 0) {
+        await db.queryWithParams(`SET IDENTITY_INSERT Marca ON; INSERT INTO Marca (MarcaID, Descripcion, CodigoMarca) VALUES (@p0, @p1, SUBSTRING(@p1, 1, 4)); SET IDENTITY_INSERT Marca OFF;`, [mId, mDesc || 'DESC']);
+        creados.marcas++;
+      }
+    }
+
+    for (const [fId, fObj] of familiasMap.entries()) {
+      const exists = await db.queryWithParams('SELECT 1 FROM Familia WHERE FamiliaID = @p0', [fId]);
+      if (exists.length === 0) {
+        await db.queryWithParams(`SET IDENTITY_INSERT Familia ON; INSERT INTO Familia (FamiliaID, MarcaID, Nombre, Activo) VALUES (@p0, @p1, @p2, 1); SET IDENTITY_INSERT Familia OFF;`, [fId, fObj.MarcaID, fObj.Nombre]);
+        creados.familias++;
+      }
+    }
+
+    for (const mod of modelosArray) {
+      const exists = await db.queryWithParams('SELECT 1 FROM Modelo WHERE ModeloID = @p0', [mod.modeloId]);
+      if (exists.length === 0) {
+        const codigoModelo = `EXCEL-${mod.modeloId}`;
+        // Estado inicial importado (ID=1 si corresponde al flujo tradicional, aunque el string manda)
+        await db.queryWithParams(`
+          SET IDENTITY_INSERT Modelo ON;
+          INSERT INTO Modelo (ModeloID, MarcaID, FamiliaID, Familia, DescripcionModelo, CombustibleCodigo, CategoriaCodigo, Estado, EstadoID, Activo, CodigoModelo)
+          VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, 1, @p7);
+          SET IDENTITY_INSERT Modelo OFF;
+        `, [mod.modeloId, mod.marcaId, mod.familiaId, mod.familiaDesc, mod.modeloDesc, mod.combustible, mod.categoria, codigoModelo]);
+        
+        await db.queryWithParams(`
+          INSERT INTO ModeloEstado (ModeloID, EstadoAnterior, EstadoNuevo, UsuarioID, Observaciones)
+          VALUES (@p0, NULL, 'importado', @p1, 'Importado desde archivo Excel')
+        `, [mod.modeloId, usuarioId]);
+
+        creados.modelos++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Base de datos actualizada con éxito.',
+      data: creados
+    });
+
+  } catch (error) {
+    logger.error('Error importando Excel:', error);
+    res.status(500).json({ success: false, message: 'Error procesando archivo Excel', error: error.message });
+  }
+};
+
 module.exports = {
   upload, // Export multer middleware
   importarCSV,
+  importarExcelAutos,
   listarBatches,
   obtenerBatch,
   procesarBatch,

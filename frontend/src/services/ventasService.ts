@@ -1,28 +1,93 @@
-import apiClient from './api';
-import { VentasModelo } from '@/types/index';
+// ventasService.ts
+// Servicio para operaciones de ventas
 
-export const ventasService = {
-  getByModelo: async (idModelo: number): Promise<VentasModelo[]> => {
-    const response = await apiClient.get<VentasModelo[]>(`/ventas/modelo/${idModelo}`);
-    return response.data;
-  },
+import api from './api';
+import type {
+  VentasResponse,
+  VentasPeriodoAnteriorResponse,
+  VentaBatchRequest,
+  BatchSaveResponse,
+  ResumenVentasResponse,
+  HistorialVentasResponse
+} from '../types/ventas.types';
 
-  create: async (data: Partial<VentasModelo>): Promise<VentasModelo> => {
-    const response = await apiClient.post<VentasModelo>('/ventas', data);
-    return response.data;
-  },
+const VENTAS_BASE_URL = '/ventas';
 
-  update: async (id: number, data: Partial<VentasModelo>): Promise<VentasModelo> => {
-    const response = await apiClient.put<VentasModelo>(`/ventas/${id}`, data);
-    return response.data;
-  },
-
-  delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/ventas/${id}`);
-  },
-
-  getByPeriodo: async (periodo: string): Promise<VentasModelo[]> => {
-    const response = await apiClient.get<VentasModelo[]>(`/ventas/periodo/${periodo}`);
-    return response.data;
-  },
+/**
+ * Obtener ventas por familia y periodo
+ */
+export const obtenerVentasPorFamilia = async (
+  familiaId: number,
+  periodo: string
+): Promise<VentasResponse> => {
+  const response = await api.get<VentasResponse>(`${VENTAS_BASE_URL}/familia`, {
+    params: { familiaId, periodo }
+  });
+  return response.data;
 };
+
+/**
+ * Obtener ventas del periodo anterior (para referencia)
+ */
+export const obtenerVentasPeriodoAnterior = async (
+  familiaId: number,
+  periodo: string
+): Promise<VentasPeriodoAnteriorResponse> => {
+  const response = await api.get<VentasPeriodoAnteriorResponse>(
+    `${VENTAS_BASE_URL}/periodo-anterior`,
+    {
+      params: { familiaId, periodo }
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Guardar ventas en batch (crear o actualizar múltiples ventas)
+ */
+export const guardarVentasBatch = async (
+  data: VentaBatchRequest
+): Promise<BatchSaveResponse> => {
+  const response = await api.post<BatchSaveResponse>(
+    `${VENTAS_BASE_URL}/crear-batch`,
+    data
+  );
+  return response.data;
+};
+
+/**
+ * Obtener resumen de ventas por periodo
+ */
+export const obtenerResumenVentas = async (
+  periodo: string
+): Promise<ResumenVentasResponse> => {
+  const response = await api.get<ResumenVentasResponse>(`${VENTAS_BASE_URL}/resumen`, {
+    params: { periodo }
+  });
+  return response.data;
+};
+
+/**
+ * Obtener historial de ventas de un modelo
+ */
+export const obtenerHistorialVentasModelo = async (
+  modeloId: number,
+  limit: number = 12
+): Promise<HistorialVentasResponse> => {
+  const response = await api.get<HistorialVentasResponse>(
+    `${VENTAS_BASE_URL}/modelo/${modeloId}/historial`,
+    {
+      params: { limit }
+    }
+  );
+  return response.data;
+};
+
+export default {
+  obtenerVentasPorFamilia,
+  obtenerVentasPeriodoAnterior,
+  guardarVentasBatch,
+  obtenerResumenVentas,
+  obtenerHistorialVentasModelo
+};
+

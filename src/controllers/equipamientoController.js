@@ -5,17 +5,28 @@ const logger = require('../config/logger');
 exports.getByModeloId = async (req, res) => {
   try {
     const { modeloId } = req.params;
-    
+
     const query = `
       SELECT * FROM EquipamientoModelo
       WHERE ModeloID = ${modeloId}
     `;
-    
+
     const equipamiento = await db.queryRaw(query);
+    let data = equipamiento[0] || null;
     
+    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos y mezclamos
+    if (data && data.OtrosDatos) {
+      try {
+        const extraData = JSON.parse(data.OtrosDatos);
+        data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad
+      } catch (e) {
+        logger.error('Error parseando OtrosDatos en equipamiento:', e);
+      }
+    }
+
     res.json({
       success: true,
-      data: equipamiento[0] || null
+      data: data
     });
   } catch (error) {
     logger.error('Error al obtener equipamiento:', error);
@@ -27,64 +38,54 @@ exports.getByModeloId = async (req, res) => {
   }
 };
 
+// Funci\u00F3n de ayuda para obtener columnas
+const getDBColumns = async () => {
+    const cols = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EquipamientoModelo'");
+    return cols.map(c => c.COLUMN_NAME);
+};
+
 // POST /api/equipamiento - Crear equipamiento para un modelo
 exports.create = async (req, res) => {
   try {
     const { modeloId, ...equipamiento } = req.body;
-    
+
     if (!modeloId) {
       return res.status(400).json({
         success: false,
-        message: 'ModeloID es requerido'
+        message: 'ModeloId es requerido'
       });
     }
-    
+
     // Verificar si ya existe equipamiento para este modelo
     const existeQuery = `SELECT EquipamientoID FROM EquipamientoModelo WHERE ModeloID = ${modeloId}`;
     const existe = await db.queryRaw(existeQuery);
-    
+
     if (existe.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'Este modelo ya tiene equipamiento cargado'
       });
     }
-    
-    // Construir query dinámicamente
-    const campos = ['ModeloID'];
-    const valores = [modeloId];
-    
-    const camposBooleanos = [
-      'AirbagConductor', 'AirbagPasajero', 'AirbagLaterales', 'AirbagCortina',
-      'ABS', 'ControlEstabilidad', 'ControlTraccion', 'AsistenciaArranque', 'AnclajesISOFIX',
-      'AireAcondicionado', 'Climatizador', 'AlzavidriosDel', 'AlzavidriosTras',
-      'CierreCentralizado', 'EspejosElectricos', 'ControlCrucero', 'ComputadoraABordo',
-      'LlantasAleacion', 'FarosLED', 'FarosXenon', 'Neblineros', 'TechoSolar',
-      'TapizCuero', 'AsientosElectricos', 'VolanteCuero', 'PantallaTouch',
-      'AppleCarPlay', 'AndroidAuto', 'Bluetooth', 'GPS', 'PuertoUSB',
-      'CamaraRetroceso', 'SensoresEstacionamiento', 'NeumaticoRepuestoCompleto',
-      'Keyless', 'EncendidoBoton', 'StartStop'
-    ];
-    
-    for (const campo of camposBooleanos) {
-      if (equipamiento[campo] !== undefined) {
-        campos.push(campo);
-        valores.push(equipamiento[campo] ? '1' : '0');
-      }
+
+    const dbCols = await getDBColumns();
+    const columnasToInsert = ['ModeloID'];
+    const valoresToInsert = [modeloId];
+
+    // Siempre guardamos el payload crudo en OtrosDatos por si cambian las columnas
+    if (dbCols.includes('OtrosDatos')) {
+        columnasToInsert.push('OtrosDatos');
+        const safeJson = JSON.stringify(equipamiento).replace(/'/g, "''");
+        valoresToInsert.push(`'${safeJson}'`);
     }
-    
+
     const insertQuery = `
-      INSERT INTO EquipamientoModelo (${campos.join(', ')})
-      VALUES (${valores.join(', ')});
+      INSERT INTO EquipamientoModelo (${columnasToInsert.join(', ')})
+      VALUES (${valoresToInsert.join(', ')});
     `;
-    
+
     await db.queryRaw(insertQuery);
-    
-    // Obtener el equipamiento creado
+
     const creado = await db.queryRaw(`SELECT * FROM EquipamientoModelo WHERE ModeloID = ${modeloId}`);
-    
-    logger.info(`Equipamiento creado para modelo ${modeloId}`);
-    
     res.status(201).json({
       success: true,
       message: 'Equipamiento creado exitosamente',
@@ -105,63 +106,55 @@ exports.update = async (req, res) => {
   try {
     const { modeloId } = req.params;
     const equipamiento = req.body;
-    
-    // Verificar si existe
+
     const existeQuery = `SELECT EquipamientoID FROM EquipamientoModelo WHERE ModeloID = ${modeloId}`;
     const existe = await db.queryRaw(existeQuery);
-    
+
     if (existe.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'No se encontró equipamiento para este modelo'
+        message: 'No se encontr\u00F3 equipamiento para este modelo'
       });
     }
-    
-    // Construir SET clause
+
     const setClauses = [];
-    const camposBooleanos = [
-      'AirbagConductor', 'AirbagPasajero', 'AirbagLaterales', 'AirbagCortina',
-      'ABS', 'ControlEstabilidad', 'ControlTraccion', 'AsistenciaArranque', 'AnclajesISOFIX',
-      'AireAcondicionado', 'Climatizador', 'AlzavidriosDel', 'AlzavidriosTras',
-      'CierreCentralizado', 'EspejosElectricos', 'ControlCrucero', 'ComputadoraABordo',
-      'LlantasAleacion', 'FarosLED', 'FarosXenon', 'Neblineros', 'TechoSolar',
-      'TapizCuero', 'AsientosElectricos', 'VolanteCuero', 'PantallaTouch',
-      'AppleCarPlay', 'AndroidAuto', 'Bluetooth', 'GPS', 'PuertoUSB',
-      'CamaraRetroceso', 'SensoresEstacionamiento', 'NeumaticoRepuestoCompleto',
-      'Keyless', 'EncendidoBoton', 'StartStop'
-    ];
-    
-    for (const campo of camposBooleanos) {
-      if (equipamiento[campo] !== undefined) {
-        setClauses.push(`${campo} = ${equipamiento[campo] ? '1' : '0'}`);
-      }
+    const dbCols = await getDBColumns();
+
+    // Guardamos absolutamente todo el payload en la columna JSON para preservar TODOS los botones y textos 100% como los manda el cliente
+    if (dbCols.includes('OtrosDatos')) {
+        const safeJson = JSON.stringify(equipamiento).replace(/'/g, "''");
+        setClauses.push(`OtrosDatos = '${safeJson}'`);
     }
     
+    // Tratamos de buscar la columna correcta de actualizaci\u00f3n segun version del SQL
+    if (dbCols.includes('FechaModificacion')) {
+        setClauses.push('FechaModificacion = GETDATE()');
+    } else if (dbCols.includes('FechaActualizacion')) {
+        setClauses.push('FechaActualizacion = GETDATE()');
+    }
+
     if (setClauses.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No hay datos para actualizar'
+        message: 'No hay datos para actualizar o no existe columna OtrosDatos en DB'
       });
     }
-    
-    setClauses.push('FechaActualizacion = GETDATE()');
-    
+
     const updateQuery = `
       UPDATE EquipamientoModelo
       SET ${setClauses.join(', ')}
       WHERE ModeloID = ${modeloId}
     `;
-    
+
     await db.queryRaw(updateQuery);
-    
-    // Obtener equipamiento actualizado
+
     const actualizado = await db.queryRaw(`SELECT * FROM EquipamientoModelo WHERE ModeloID = ${modeloId}`);
-    
-    logger.info(`Equipamiento actualizado para modelo ${modeloId}`);
-    
+
+    logger.info(`Equipamiento actualizado (v\u00eda JSON payload) para modelo ${modeloId}`);
+
     res.json({
       success: true,
-      message: 'Equipamiento actualizado exitosamente',
+      message: 'Equipamiento actualizado json exitosamente',
       data: actualizado[0]
     });
   } catch (error) {
@@ -178,12 +171,11 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const { id } = req.params;
-    
     const deleteQuery = `DELETE FROM EquipamientoModelo WHERE EquipamientoID = ${id}`;
     await db.queryRaw(deleteQuery);
-    
+
     logger.info(`Equipamiento eliminado: ID ${id}`);
-    
+
     res.json({
       success: true,
       message: 'Equipamiento eliminado exitosamente'
