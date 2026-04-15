@@ -117,7 +117,9 @@ export function DatosMinimosForm({ modelo, onUpdate, readOnly = false }: DatosMi
       // Crear nuevo modelo - transformar datos al formato del backend
       const createData = {
         marcaId: data.id_marca,
+        codigoModelo: data.codigoModelo,
         modelo: data.modelo,
+        precioInicial: data.precioInicial,
         familia: data.familia,
         origen: data.origen,
         combustible: data.combustible,

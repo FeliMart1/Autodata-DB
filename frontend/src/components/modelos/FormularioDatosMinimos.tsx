@@ -123,11 +123,12 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos Mínimos del Modelo</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <form onSubmit={(e) => { e.preventDefault(); if (onSendRevision) onSendRevision(formData); }}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Datos Mínimos del Modelo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
           {/* Sección: Información Básica */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">Información Básica</h3>
@@ -151,45 +152,51 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 <label className="block text-sm font-medium mb-1">
                   Carrocería <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  list="carrocerias"
                   value={formData.Carroceria || ''}
                   onChange={(e) => handleChange('Carroceria', e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="Sedan">Sedán</option>
-                  <option value="SUV">SUV</option>
-                  <option value="Hatchback">Hatchback</option>
-                  <option value="Pickup">Pick-up</option>
-                  <option value="Coupe">Coupé</option>
-                  <option value="Wagon">Wagon</option>
-                  <option value="Convertible">Convertible</option>
-                  <option value="Van">Van</option>
-                  <option value="Minivan">Minivan</option>
-                </select>
+                  placeholder="Seleccionar o escribir..."
+                />
+                <datalist id="carrocerias">
+                  <option value="BOX" />
+                  <option value="Cab. Extendida" />
+                  <option value="Cabrio" />
+                  <option value="CAMION" />
+                  <option value="Chasis Cab." />
+                  <option value="City Car" />
+                  <option value="Coupé" />
+                  <option value="DC" />
+                  <option value="FURGON" />
+                  <option value="Hatch" />
+                  <option value="Minibus" />
+                  <option value="Omnibus" />
+                  <option value="PUP" />
+                  <option value="Rural" />
+                  <option value="Sedán" />
+                  <option value="SUV" />
+                </datalist>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Origen <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="text"
+                  maxLength={3}
+                  pattern="^[a-zA-Z]{2,3}$"
+                  title="2 o 3 letras (ej. URY, BR, MEX)"
                   value={formData.OrigenCodigo || ''}
-                  onChange={(e) => handleChange('OrigenCodigo', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleChange('OrigenCodigo', e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().substring(0, 3))}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 uppercase"
                   required
                   disabled={readonly}
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="Japones">Japonés</option>
-                  <option value="Americano">Americano</option>
-                  <option value="Europeo">Europeo</option>
-                  <option value="Coreano">Coreano</option>
-                  <option value="Chino">Chino</option>
-                  <option value="Otro">Otro</option>
-                </select>
+                  placeholder="Ej: JPN"
+                />
               </div>
 
               <div>
@@ -259,7 +266,16 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   disabled={readonly}
                   placeholder="Ej: BEV, PHEV, HEV"
+                  list="tipoVehiculoElectrico"
                 />
+                <datalist id="tipoVehiculoElectrico">
+                  <option value="BEV" />
+                  <option value="HEV" />
+                  <option value="PHEV" />
+                  <option value="MHEV" />
+                  <option value="EREV" />
+                  <option value="FCEV" />
+                </datalist>
               </div>
 
               <div>
@@ -268,13 +284,14 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 </label>
                 <input
                   type="number"
+                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
                   value={formData.Cilindros || ''}
                   onChange={(e) => handleChange('Cilindros', parseInt(e.target.value) || undefined)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
                   min="0"
-                  max="16"
+                  max="99"
                   placeholder="4"
                 />
               </div>
@@ -285,13 +302,14 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 </label>
                 <input
                   type="number"
+                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
                   value={formData.Valvulas || ''}
                   onChange={(e) => handleChange('Valvulas', parseInt(e.target.value) || undefined)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
                   min="0"
-                  max="64"
+                  max="99"
                   placeholder="16"
                 />
               </div>
@@ -302,12 +320,14 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 </label>
                 <input
                   type="number"
+                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
                   value={formData.CC || ''}
                   onChange={(e) => handleChange('CC', parseInt(e.target.value) || undefined)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
                   min="0"
+                  max="9999"
                   placeholder="1500"
                 />
               </div>
@@ -318,12 +338,14 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 </label>
                 <input
                   type="number"
+                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
                   value={formData.HP || ''}
                   onChange={(e) => handleChange('HP', parseFloat(e.target.value) || undefined)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
                   min="0"
+                  max="9999"
                   step="0.1"
                   placeholder="150"
                 />
@@ -346,8 +368,18 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  placeholder="Ej: 6AT, CVT, 7DCT, Manual"
+                  placeholder="Ej: CVT"
+                  list="tiposCajaAut"
                 />
+                <datalist id="tiposCajaAut">
+                  <option value="N/A" />
+                  <option value="DCT" />
+                  <option value="DHT" />
+                  <option value="CVT" />
+                  <option value="e-CVT" />
+                  <option value="Convertidor de par" />
+                  <option value="AMT" />
+                </datalist>
               </div>
             </div>
           </div>
@@ -362,6 +394,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 </label>
                 <input
                   type="number"
+                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
                   value={formData.Puertas || ''}
                   onChange={(e) => handleChange('Puertas', parseInt(e.target.value) || undefined)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
@@ -379,6 +412,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 </label>
                 <input
                   type="number"
+                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
                   value={formData.Asientos || ''}
                   onChange={(e) => handleChange('Asientos', parseInt(e.target.value) || undefined)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
@@ -401,8 +435,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 )}
                 {onSendRevision && (
                   <button
-                    type="button"
-                    onClick={() => onSendRevision(formData)}
+                    type="submit"
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   >
                     Enviar a Revisión
@@ -421,7 +454,8 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </form>
     </div>
   );
 };

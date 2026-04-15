@@ -1,0 +1,275 @@
+﻿# Especificación de Campos para el Frontend
+
+Este documento detalla la lógica y los tipos de inputs a renderizar en la interfaz según las reglas definidas en `config_parsed.json`.
+Se agrupan en cuatro grandes categorías.
+
+## 1. Checkbox / Switches (fields with just 'Si' and 'No')
+Estos campos solo admiten `Si` o `No` y deben renderizarse como componentes **Checkbox** o **Switches (Toggles)**.
+
+- **Llantas de aleación**
+- **TPMS Monitoreo presión de neumáticos**
+- **Kit Inflable AntiPinchazo**
+- **Garantías diferenciales**
+- **Keyless o Smart key**
+- **Espejos eléct.**
+- **Espejo interior electrocromado**
+- **Espejos abatibles electricamente**
+- **Volante revestido en Cuero**
+- **Tablero digital**
+- **Computadora**
+- **GPS**
+- **Inmobilizador**
+- **Alarma**
+- **ABS**
+- **EBD-EBV-REF (Distribución elect. de frenada)**
+- **Freno Estacionamento Electrico (EPB)**
+- **ESP Control estabilidad**
+- **Control tracción**
+- **Asist. frenado detector distancia**
+- **Asist. Pendiente**
+- **Det. cambio de fila**
+- **Det. punto ciego**
+- **Traffic Sign recognition**
+- **Driver attention control**
+- **Detector   lluvia**
+- **Grip Control**
+- **Comando audio en volante**
+- **CD**
+- **MP3**
+- **USB**
+- **Bluetooth**
+- **DVD**
+- **Mirror Screen - Smartphone Display          **
+- **Pantalla Tactil**
+- **Cargador Smartphone con inducción**
+- **Kit Hi Fi (Bose/JBL/Focal)**
+- **asientos rango 2 y 3**
+- **asiento 2+1**
+- **Techo Bi-tono**
+- **Barras de techo**
+- **Sist. automático de estacionamento**
+- **Faros de neblina**
+- **Faros direccionales**
+- **Faros full LED    **
+- **Faros halógenos  + DRL LED (Diurnas)**
+- **Faros xenon + Limpadores**
+- **Pack Visibilidad - Encendido auto faros **
+- **Paso de luces Cruz / ruta automática**
+- **Visión nocturna**
+- **Protector CAJA**
+- **Puerta lat. Eléctrica**
+- **Start Stop**
+- **limitador de velocidad**
+- **Alerta de tráfico cruzado trasero**
+- **Alerta de tráfico cruzado frontal**
+- **Frenado multicolisión**
+- **Head-Up Display**
+- **Radio**
+- **Asist. Descenso
+(HDC)**
+- **Paddle Shift**
+- **Apoyabrazo delantero**
+- **Faros Matrix**
+- **Luces traseras led**
+- **Bloqueo diferencial por terreno**
+- **Asiento ventilado**
+- **City Stop**
+- **Freno de peatones**
+- **Desempañador eléctrico**
+- **Iluminación ambiental**
+- **Limpia-lava parabrisas trasero eléct.**
+- **Apoyabrazo central de asiento trasero**
+- **Soporte para muslo delantero**
+- **Asiento trasero con ajuste eléctrico**
+- **3ra. Fila de asientos eléctricos**
+- **Volante multifunción**
+- **Tablero digital 3D**
+- **Carga electrica por wireless**
+- **Carga electrica por induccion**
+- **Cable electrico tipo 3 incluido**
+- **Chassis Drive Select**
+- **Chassis Sport Suspension**
+- **Direccion en las cuatro ruedas**
+- **Luces Laser**
+- **Luces tras. OLED**
+- **Dashboard display configurable**
+- **Wireless Smartphone integration**
+- **Mobile phone Antenna**
+- **Deflector de viento**
+- **Asientos deportivos**
+- **Seat adjustment, memory (Driver)**
+- **Seat adjustment, memory (Co-Driver)**
+- **Lumbar, Lumbar adjustment front (Driver)**
+- **Lumbar, Lumbar adjustment front (Co-Driver)**
+- **Seat heating, rear**
+
+## 2. Select / Dropdowns (fields with multiple specific options like 'Tipo2 - Carrocería')
+Estos campos tienen un conjunto cerrado de opciones específicas. Deben renderizarse como componentes de lista desplegable (`<select>` o Custom Dropdowns). Note que algunos incluyen la opción de agregar nuevas variaciones ("Otros", "No tiene", "N/A" o "Dejar opción para escribir").
+
+- **TIPO2 - Carrocería**
+  - Opciones: "BOX", "Cab. Extendida", "Cabrio", "CAMION", "Chasis Cab.", "City Car", "Coupé ", "DC", "FURGON", "Hatch", "Minibus", "Omnibus", "PUP", "Rural", "Sedán", "SUV", "Dejar en blanco para agregar"
+- **COMBUSTIBLE**
+  - Opciones: "DIESEL", "ELECTRICO", "NAFTA"
+- **Rueda aux. homogeneo**
+  - Opciones: "Si", "No", "No tiene"
+- **Iny.**
+  - Opciones: "Directa", "Common Rail ", "Electrónica", "Multipunto", "N/A"
+- **Tracción**
+  - Opciones: "4x2", "4x4"
+- **Suspensión**
+  - Opciones: "McPherson /Multilink", "Independiente", "Independiente/barra de torsión", "McPherson/barra estabilizadora", "Neumática", "Dejar opción para escribir otras diferentes"
+- **Caja**
+  - Opciones: "Automática", "Manual"
+- **Tipo caja Aut.**
+  - Opciones: "N/A", "DCT", "DHT", "CVT", "e-CVT", "Convertidor de par", "AMT", "Dejar opción para escribir otras diferentes"
+- **Turbo**
+  - Opciones: "Si", "No", "N/A"
+- **Tipo de Vehiculo Electrico / Hibrido**
+  - Opciones: "BEV", "EREV", "HEV", "MHEV", "PHEV", "N/A"
+- **E-Pedal**
+  - Opciones: "Si", "No", "N/A"
+- **Cap. Tanque Hidrógeno**
+  - Opciones: "Si", "No", "N/A"
+- **Ciclo/norma**
+  - Opciones: "NEDC", "WLTP", "Dejar opción para escribir otras diferentes", "N/A"
+- **Tipos de conectores**
+  - Opciones: "Tipo 2", "CCS2", "Dejar opción para escribir otras diferentes", "N/A"
+- **Tecnología Bat. (materiales)**
+  - Opciones: "Ion litio", "LFP (litio-ferro-fosfato)", "NCM (níquel-cobalto-manganeso)", "Plomo", "Gel", "N/A"
+- **Sistema de climatización**
+  - Opciones: "No", "Aire acondicionado", "Aire acondicionado con salida trasera", "Climatizador", "Climatizador con salida trasera", "Climatizador bi zona", "Climatizador bi zona con salida trasera", "Climatizador tri zona "
+- **Dirección**
+  - Opciones: "Dirección Asistida", "Dirección electroasistida"
+- **Tipo de bloqueo**
+  - Opciones: "Bloqueo central", "Bloqueo a distancia", "Bloqueo con Smartphone", "No"
+- **Levanta vidrios**
+  - Opciones: "Manual", "Eléctricos x 2", "Eléctricos x 4", "Eléctricos x 3"
+- **Tapizado **
+  - Opciones: "Textil", "Cuero", "Simil cuero (CUIR)", "Mixto (tela y  simil cuero)", "Mixto (tela y  cuero)", "Alcantara"
+- **Vel crucero**
+  - Opciones: "Si", "No", "Adaptativo"
+- **ABAG**
+  - Opciones: "2", "4", "6", "7", "8", "10", "12", "No"
+- **SRI (Sistema de retención infantil)**
+  - Opciones: "No", "ISOFIX", "LATCH", "ISOFIX Y TOP TETHER", "ISOFIX Y LATCH"
+- **DISCOS FRENOS**
+  - Opciones: "2", "4"
+- **Sist. Multimedia**
+  - Opciones: "Depende de cada marca y modelo. Capaz mejor dejar para que se escriba", "Composition Media", "Full Link", "Media Nav", "Media Sistem", "Mirror Link", "Composition Media", "Touch Infotainment", "Nissan door-to-door", "R-Link Evolution"
+- **Asiento elect. + Calef. + Masaje**
+  - Opciones: "Si", "No", "Eléct. + Calef.", "Eléct. + Masaje"
+- **Techo**
+  - Opciones: "Techo Panorámico", "Techo corredizo manual", "Techo corredizo eléctrico", "Lona plegable", "Rígido / Lona plegable", "No"
+- **Sensor estacionamiento**
+  - Opciones: "Trasero", "Trasero y delantero", "No"
+- **Cámara**
+  - Opciones: "Trasera", "Trasera y delantera", "Trasera y lateral", "360°", "No", "540°"
+- **Maletera apertura eléctrica**
+  - Opciones: "Motorizada", "Foot-control", "No"
+- **Partición de cabina**
+  - Opciones: "Si", "VER YANI" *(En stand-by hasta aclaración interna del negocio)*
+- **N° Puertas Lat.**
+  - Opciones: "1", "2"
+
+## 3. Inputs Numéricos (fields that say 'NUMEROS')
+Estos campos esperan un valor numérico y deben usar un `<input type="number">` adaptado a las condiciones o un input de texto con máscara/restricciones.
+
+- **Largo **
+  - *NUMEROS, cuatro cifras sin separacion de miles ni decimales *
+- **Ancho**
+  - *NUMEROS, cuatro cifras sin separacion de miles ni decimales *
+- **Altura**
+  - *NUMEROS, cuatro cifras sin separacion de miles ni decimales *
+- **Dist. Ejes**
+  - *NUMEROS, cuatro cifras sin separacion de miles ni decimales *
+- **Peso en orden de marcha **
+  - *NUMEROS, cuatro cifras sin separacion de miles ni decimales *
+- **Neumáticos**
+  - *Input de texto (formato: 255-55 o 255/55).*
+  - *Debe ir acompañado de un Checkbox (ej. "Misma medida adelante y atrás"). Si se desmarca, debe aparecer un segundo input similar para ingresar la medida de los neumáticos traseros.*
+- **Diámetro llantas **
+  - *NUMEROS dos cifras sin decimales.*
+  - *Debe ir acompañado de un Checkbox. Si se desmarca, debe aparecer un segundo input para ingresar la medida del diámetro trasero.*
+- **Cilindros**
+  - *NUMEROS hasta dos cifras sin decimales*
+  - *N/A*
+- **Válvulas**
+  - *NUMEROS hasta dos cifras sin decimales*
+  - *N/A*
+- **CC**
+  - *NUMEROS, cuatro cifras sin separacion de miles ni decimales *
+  - *N/A*
+- **HP - CV**
+  - *NUMEROS, hasta cuatro cifras sin separacion de miles ni decimales *
+- **Marchas / velocidades**
+  - *NUMEROS (1 ó 2 cifras sin decimales)*
+- **N° de puertas**
+  - *NUMEROS sin decimales*
+- **CO2 (g/Km)**
+  - *NUMEROS sin decimales*
+- **Consumo ruta      (l/100 km)**
+  - *NUMEROS con decimales*
+- **Consumo urbano     (l/100 km)**
+  - *NUMEROS con decimales*
+- **Consumo mixto      (l/100 km)**
+  - *NUMEROS con decimales*
+- **Garantía en años**
+  - *NUMEROS sin decimales*
+- **Garantía en Km**
+  - *NUMEROS sin decimales*
+- **Autonomía / Max. Range en kilometros**
+  - *NUMEROS sin decimales*
+  - *N/A*
+- **Potencia motor (KW)**
+  - *NUMEROS con decimales*
+  - *N/A*
+- **Cap. operativa bat. / Battery capacity (Kwh)**
+  - *NUMEROS con decimales*
+  - *N/A*
+- **Par del Motor - torque (Nm)**
+  - *NUMEROS sin decimales*
+- **Potencia de carga-                 Pot. Máx (KW en CA)**
+  - *NUMEROS con decimales*
+  - *N/A*
+- **Garantía cap. Bat.**
+  - *NUMEROS (formato: 8/150.000)*
+  - *N/A*
+- **Pant. Multimedia (")**
+  - *NUMEROS desde 0 en adelante, con dos decimales*
+- **Número de asientos **
+  - *NUMEROS sin decimales*
+- **But. Electr.**
+  - *NUMEROS DESDE 0 porque si no tiene, va 0*
+  - *No*
+- **Cap. Baúl **
+  - *NUMEROS sin decimales*
+- **Cap. Tanque combustible **
+  - *NUMEROS sin decimales*
+- **Carga útil (Kg)**
+  - *NUMEROS*
+- **Volumen útil (m3)**
+  - *NUMEROS*
+- **Número de techos que se abren**
+  - *NUMEROS sin decimales*
+- **Asientos con masajeador (número)**
+  - *NUMEROS sin decimales*
+- **Autonomía del motor eléctrico (BEV y PHEV)**
+  - *NUMEROS sin decimales*
+- **Aceleracion BEV       0 a 100**
+  - *NUMEROS con dos decimales*
+- **Acceleration ICE**
+  - *NUMEROS con dos decimales*
+- **Precio a fecha de carga**
+  - *NUMEROS con separacion de miles y sin decimales*
+
+## 4. Textos Libres (everything else or open-ended)
+Estos campos admiten texto libre o se construyen a partir de cálculos o ingreso restringido de letras, con ciertas restricciones impuestas por el sistema. Renderizar usando `<input type="text">` o inputs calculados.
+
+- **ORIGEN**
+  - Validación especial: *2 ó 3 letras en mayúsculas (tipo ARG, BRA, UK, CHI)*
+- **kg/hp**
+  - Validación especial: *Columna I dividido Columna T*
+- **Aceite**
+  - Validación especial: *Dejar para escribir*
+- **Norma**
+  - Validación especial: *Letras en mayúsculas *

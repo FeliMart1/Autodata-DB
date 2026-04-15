@@ -334,7 +334,7 @@ const procesarBatch = async (req, res) => {
             ModeloID: modeloId,
             Precio: parseFloat(reg.precio),
             Moneda: reg.moneda || 'USD',
-            FechaVigenciaDesde: new Date(),
+              FechaVigenciaDesde: new Date(),
             Fuente: 'Claudio CSV Import'
           });
         }
@@ -449,11 +449,11 @@ const importarExcelAutos = async (req, res) => {
       const dbMarcaId = marcaIdMap.get(mod.codMarca);
       if (!dbMarcaId) continue;
       const codigoAutodata = `${mod.codMarca}${mod.codModelo}`;
-      const modExists = await db.queryWithParams(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, mod.codModelo]);
+        const modExists = await db.queryWithParams(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, mod.codModelo]);
       let modeloIdDb = null;
       if (modExists.length === 0) {
         const importador = null; // or from mod
-        const insertMod = await db.queryWithParams(`INSERT INTO Modelo (MarcaID, CodigoModelo, CodigoAutodata, DescripcionModelo, Familia, CombustibleCodigo, CategoriaCodigo, Estado, Activo, CreadoPorID, PrecioInicial) OUTPUT INSERTED.ModeloID VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, @p7, @p8)`, [dbMarcaId, mod.codModelo, codigoAutodata, mod.modeloDesc, mod.familiaDesc, mod.combustible, mod.categoria, usuarioId, mod.precio]);
+          const insertMod = await db.queryWithParams(`INSERT INTO Modelo (MarcaID, CodigoModelo, CodigoAutodata, DescripcionModelo, Familia, CombustibleCodigo, CategoriaCodigo, Estado, Activo, ModificadoPorID, PrecioInicial) OUTPUT INSERTED.ModeloID VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, @p7, @p8)`, [dbMarcaId, mod.codModelo, codigoAutodata, mod.modeloDesc, mod.familiaDesc, mod.combustible, mod.categoria, usuarioId, mod.precio]);
         if (insertMod && insertMod.length > 0) {
            modeloIdDb = insertMod[0].ModeloID;
            await db.queryWithParams(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'importado', 'Sistema')`, [modeloIdDb]);
@@ -463,7 +463,7 @@ const importarExcelAutos = async (req, res) => {
          modeloIdDb = modExists[0].ModeloID;
       }
       if (modeloIdDb && mod.precio != null && !isNaN(mod.precio)) {
-         await db.queryWithParams(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, VigenciaDesde, Observaciones, RegistradoPorID) VALUES (@p0, @p1, 'USD', GETDATE(), 'Precio importado Excel', @p2)`, [modeloIdDb, mod.precio, usuarioId]);
+         await db.queryWithParams(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Precio importado Excel', GETDATE())`, [modeloIdDb, mod.precio]);
       }
     }
     return res.json({ success: true, message: 'Importación completada', data: { creados } });
@@ -507,8 +507,8 @@ const importarExcelPrecios = async (req, res) => {
         // Validar si ese precio ya es el actual, o insertar uno nuevo
         // Para simplificar, inserta uno nuevo siempre que actualizamos
         await db.queryWithParams(
-          `INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, VigenciaDesde, Observaciones, RegistradoPorID) VALUES (@p0, @p1, 'USD', GETDATE(), 'Actualización por Excel Tabulado', @p2)`,
-          [modeloIdDb, ultimoPrecio, usuarioId]
+          `INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Actualización por Excel Tabulado', GETDATE())`,
+          [modeloIdDb, ultimoPrecio]
         );
 
         // Opcional: Actualizar el PrecioInicial del modelo

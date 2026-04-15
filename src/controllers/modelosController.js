@@ -232,7 +232,16 @@ exports.create = async (req, res) => {
     if (modeloExistente.length > 0) {
       return res.status(409).json({
         success: false,
-        message: 'Ya existe un modelo con este Código para esta Marca'
+        message: 'Ya existe un modelo con este Código (o Código Autodata) para esta Marca'
+      });
+    }
+
+    // Validar si el nombre del modelo ya existe para esta marca
+    const descripcionExistente = await db.queryRaw(`SELECT ModeloID FROM Modelo WHERE MarcaID = ${marcaId} AND DescripcionModelo = N'${modelo.replace(/'/g, "''")}'`);
+    if (descripcionExistente.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Ya existe un modelo con este Nombre para esta Marca'
       });
     }
     
@@ -243,7 +252,30 @@ exports.create = async (req, res) => {
     const valores = [marcaId, `'${modeloCod}'`, `'${codigoAutodata}'`, `N'${modelo.replace(/'/g, "''")}'`, `'creado'`, '1'];
     
     if (precioInicial) { campos.push('PrecioInicial'); valores.push(precioInicial); }
-    if (familia) { campos.push('Familia'); valores.push(`N'${familia.replace(/'/g, "''")}'`); }
+    
+    if (familia) { 
+      const nombreFamilia = familia.trim();
+      campos.push('Familia'); 
+      valores.push(`N'${nombreFamilia.replace(/'/g, "''")}'`); 
+
+      // Buscar si la familia existe en esta marca, si no insertarla para que aparezca en los dropdowns
+      try {
+        const checkFam = await db.queryRaw(`SELECT FamiliaID FROM Familia WHERE MarcaID = ${marcaId} AND Nombre = N'${nombreFamilia.replace(/'/g, "''")}'`);
+        if (checkFam && checkFam.length > 0) {
+          campos.push('FamiliaID');
+          valores.push(checkFam[0].FamiliaID);
+        } else {
+          const insertFam = await db.queryRaw(`INSERT INTO Familia (MarcaID, Nombre, Activo, FechaCreacion) OUTPUT INSERTED.FamiliaID VALUES (${marcaId}, N'${nombreFamilia.replace(/'/g, "''")}', 1, GETDATE())`);
+          if (insertFam && insertFam.length > 0) {
+            campos.push('FamiliaID');
+            valores.push(insertFam[0].FamiliaID);
+          }
+        }
+      } catch(e) {
+        logger.error('Error auto-creando familia:', e);
+      }
+    }
+
     if (origen) { campos.push('OrigenCodigo'); valores.push(`N'${origen.replace(/'/g, "''")}'`); }
     if (combustible) { campos.push('CombustibleCodigo'); valores.push(`N'${combustible.replace(/'/g, "''")}'`); }
     if (anio) { campos.push('Anio'); valores.push(anio); }
@@ -291,8 +323,8 @@ exports.create = async (req, res) => {
       // Generar registro en la tabla de precio si se envió el precioInicial
       if (precioInicial && !isNaN(precioInicial)) {
         const precioQuery = `
-          INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, VigenciaDesde, Observaciones, RegistradoPorID)
-          VALUES (${modeloId}, ${parseFloat(precioInicial)}, 'USD', GETDATE(), 'Precio inicial cargado manualmente', ${userId})
+          INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga)
+          VALUES (${modeloId}, ${parseFloat(precioInicial)}, 'USD', GETDATE(), 'Manual', GETDATE())
         `;
         await db.queryRaw(precioQuery);
       }
@@ -358,18 +390,10 @@ exports.update = async (req, res) => {
     
     // Construir SET clause dinámicamente
     const setClauses = [];
-    // Campos permitidos según estructura de 19 campos:
-    // 5 obligatorios: MarcaID, Familia, Modelo, Combustible, CategoriaVehiculo
-    // 14 datos mínimos: SegmentacionAutodata, Carroceria, OrigenCodigo, Cilindros, Valvulas, CC, HP, TipoCajaAut, Puertas, Asientos, TipoMotor, TipoVehiculoElectrico, Importador, PrecioInicial
-    const camposPermitidos = [
-      // 5 Campos Obligatorios
-      'MarcaID', 'DescripcionModelo', 'Familia', 'CombustibleCodigo', 'CategoriaVehiculo',
-      // 14 Datos Mínimos
-      'SegmentacionAutodata', 'Carroceria', 'OrigenCodigo', 'Cilindros', 'Valvulas', 'CC', 'HP',
-      'TipoCajaAut', 'Puertas', 'Asientos', 'TipoMotor', 'TipoVehiculoElectrico', 'Importador', 'PrecioInicial',
-      // Campos de Control
-      'Estado', 'UltimoComentario'
-    ];
+    
+    // Todos los campos posibles que se pueden actualizar en un modelo (obtenidos dinámicamente)
+    const columnsResult = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Modelo'");
+    const camposPermitidos = columnsResult.map(c => c.COLUMN_NAME);
     
     // Mapeo de nombres de campos del frontend a la base de datos
     const fieldMapping = {
@@ -402,6 +426,26 @@ exports.update = async (req, res) => {
       const dbCampo = fieldMapping[campo] || campo;
       if (camposPermitidos.includes(dbCampo)) {
         const valor = datosActualizacion[campo];
+        
+        // Sincronizar familia con FamiliaID
+        if (dbCampo === 'Familia' && valor && typeof valor === 'string') {
+          const marcaIdTarget = datosActualizacion.id_marca || modeloExistente[0].MarcaID;
+          const nombreFamilia = valor.trim();
+          try {
+            const checkFam = await db.queryRaw(`SELECT FamiliaID FROM Familia WHERE MarcaID = ${marcaIdTarget} AND Nombre = N'${nombreFamilia.replace(/'/g, "''")}'`);
+            if (checkFam && checkFam.length > 0) {
+               setClauses.push(`FamiliaID = ${checkFam[0].FamiliaID}`);
+            } else {
+               const insertFam = await db.queryRaw(`INSERT INTO Familia (MarcaID, Nombre, Activo, FechaCreacion) OUTPUT INSERTED.FamiliaID VALUES (${marcaIdTarget}, N'${nombreFamilia.replace(/'/g, "''")}', 1, GETDATE())`);
+               if (insertFam && insertFam.length > 0) {
+                 setClauses.push(`FamiliaID = ${insertFam[0].FamiliaID}`);
+               }
+            }
+          } catch(e) {
+            logger.error('Error auto-creando familia (update):', e);
+          }
+        }
+        
         if (valor === null || valor === undefined) {
           setClauses.push(`${dbCampo} = NULL`);
         } else if (typeof valor === 'string') {

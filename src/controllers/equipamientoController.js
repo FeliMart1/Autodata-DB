@@ -78,6 +78,23 @@ exports.create = async (req, res) => {
         valoresToInsert.push(`'${safeJson}'`);
     }
 
+    // Insertar columnas que existan en la base de datos
+    for (const key of Object.keys(equipamiento)) {
+      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID') {
+        columnasToInsert.push(key);
+        const val = equipamiento[key];
+        if (val === null || val === undefined) {
+          valoresToInsert.push('NULL');
+        } else if (typeof val === 'boolean') {
+          valoresToInsert.push(val ? 1 : 0);
+        } else if (typeof val === 'string') {
+          valoresToInsert.push(`N'${val.replace(/'/g, "''")}'`);
+        } else {
+          valoresToInsert.push(val);
+        }
+      }
+    }
+
     const insertQuery = `
       INSERT INTO EquipamientoModelo (${columnasToInsert.join(', ')})
       VALUES (${valoresToInsert.join(', ')});
@@ -126,11 +143,27 @@ exports.update = async (req, res) => {
         setClauses.push(`OtrosDatos = '${safeJson}'`);
     }
     
-    // Tratamos de buscar la columna correcta de actualizaci\u00f3n segun version del SQL
+    // Tratamos de buscar la columna correcta de actualización segun version del SQL
     if (dbCols.includes('FechaModificacion')) {
         setClauses.push('FechaModificacion = GETDATE()');
     } else if (dbCols.includes('FechaActualizacion')) {
         setClauses.push('FechaActualizacion = GETDATE()');
+    }
+
+    // Actualizar columnas que existan en la base de datos de manera individual, excluyendo IDs para evitar conflictos
+    for (const key of Object.keys(equipamiento)) {
+      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID') {
+        const val = equipamiento[key];
+        if (val === null || val === undefined) {
+          setClauses.push(`${key} = NULL`);
+        } else if (typeof val === 'boolean') {
+          setClauses.push(`${key} = ${val ? 1 : 0}`);
+        } else if (typeof val === 'string') {
+          setClauses.push(`${key} = N'${val.replace(/'/g, "''")}'`);
+        } else {
+          setClauses.push(`${key} = ${val}`);
+        }
+      }
     }
 
     if (setClauses.length === 0) {
