@@ -305,7 +305,11 @@ const handleEnviarARevision = async (formData: any) => {
               </div>
             ) : (
               <div className="space-y-4">
-                  <Tabs value={tabActiva} onValueChange={(v) => { if (v === 'equipamiento' && !isFaseEquipamiento) { addToast('Se requieren datos mínimos primero', 'error'); return; } setTabActiva(v as 'minimos' | 'equipamiento'); }}>
+                  <Tabs value={tabActiva} onValueChange={(v) => { 
+                    const isEq = [ModeloEstado.MINIMOS_APROBADOS, ModeloEstado.EQUIPAMIENTO_CARGADO, ModeloEstado.CORREGIR_EQUIPAMIENTO].includes(modeloSeleccionado.Estado);
+                    if (v === 'equipamiento' && !isEq) { addToast('Se requieren datos mínimos primero', 'error'); return; } 
+                    setTabActiva(v as 'minimos' | 'equipamiento'); 
+                  }}>
   {(() => {
     const isFaseMinimos = [
       ModeloEstado.IMPORTADO,

@@ -1,0 +1,1 @@
+const fs = require("fs"); const file = "frontend/scripts/generate-form-equipamiento-updated.cjs"; let c = fs.readFileSync(file, "utf8"); c = c.split("{category ===").join("{'" + String.fromCharCode(36) + "{category}' ==="); fs.writeFileSync(file, c);

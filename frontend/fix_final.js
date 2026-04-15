@@ -1,0 +1,1 @@
+import fs from 'fs'; let content = fs.readFileSync('frontend/scripts/generate-form-equipamiento-updated.cjs', 'utf-8'); content = content.replace(/{([A-Z][a-z]+) ===/g, {' + '' + ' ===); fs.writeFileSync('frontend/scripts/generate-form-equipamiento-updated.cjs', content, 'utf-8');

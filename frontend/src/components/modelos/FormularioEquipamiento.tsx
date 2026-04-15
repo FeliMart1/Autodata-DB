@@ -21,12 +21,16 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   onChange,
   readonly = false
 }) => {
-  const [formData, setFormData] = useState<Partial<EquipamientoModelo>>(equipamiento);
+  const [formData, setFormData] = useState<Partial<EquipamientoModelo>>(equipamiento || {});
   const [seccionesAbiertas, setSeccionesAbiertas] = useState<Record<string, boolean>>({
+    Electricos: true,
     Dimensiones: true,
     Mecanica: false,
     Equipamiento: false
-  });
+    });
+
+  const isElectricoInitial = ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].some((f) => (equipamiento || {})[f] != null && (equipamiento || {})[f] !== '' && (equipamiento || {})[f] !== false);
+  const [isElectrico, setIsElectrico] = useState(isElectricoInitial);
 
   const handleChange = (field: keyof EquipamientoModelo, value: any) => {
     const newData = { ...formData, [field]: value };
@@ -51,6 +55,144 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
       <Card className="border shadow-sm">
         <div 
           className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+          onClick={() => toggleSeccion('Electricos')}
+        >
+          <h3 className="text-lg font-semibold text-slate-800">Electricos</h3>
+          {seccionesAbiertas['Electricos'] ? (
+            <ChevronUp className="h-5 w-5 text-slate-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-slate-500" />
+          )}
+        </div>
+        
+        <div className={seccionesAbiertas['Electricos'] ? 'block' : 'hidden'}>
+          <CardContent className="pt-0 pb-5">
+            {'Electricos' === 'Electricos' && (
+              <div className="px-4 pb-4 mb-4 border-b bg-slate-50 pt-4 -mx-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mx-4">
+                  <span className="font-semibold text-slate-800 text-lg mb-2 md:mb-0">¿Es un vehículo eléctrico o híbrido?</span>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={isElectrico} onChange={() => setIsElectrico(true)} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">Sí</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={!isElectrico} onChange={() => { 
+                        setIsElectrico(false); 
+                        ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].forEach(f => handleChange(f as any, undefined)); 
+                      }} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">No</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 ${'Electricos' === 'Electricos' && !isElectrico ? 'hidden' : 'pt-4'}`}>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipo Vehiculo Electrico</label>
+                <input type={'text'} disabled={readonly} value={(formData['TipoVehiculoElectrico'] as string | number) || ''} onChange={(e) => { handleChange('TipoVehiculoElectrico', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">E-Pedal</label>
+                <input type="checkbox" disabled={readonly} checked={(formData['EPedal'] as boolean) || false} onChange={(e) => handleChange('EPedal', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Capacidad Tanque Hidrogeno</label>
+                <input type={'number'} disabled={readonly} value={(formData['CapacidadTanqueHidrogeno'] as string | number) || ''} onChange={(e) => { handleChange('CapacidadTanqueHidrogeno', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Ciclo/norma</label>
+                <input type="text" list="CicloNorma_list" disabled={readonly} value={(formData['CicloNorma'] as string | number) || ''} onChange={(e) => { handleChange('CicloNorma', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+                <datalist id="CicloNorma_list">
+                  <option value="NEDC" />
+                  <option value="WLTP" />
+                  <option value="N/A" />
+                </datalist>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia Motor</label>
+                <input type={'number'} disabled={readonly} value={(formData['PotenciaMotor'] as string | number) || ''} onChange={(e) => { handleChange('PotenciaMotor', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Capacidad Operativa Bateria</label>
+                <input type={'number'} disabled={readonly} value={(formData['CapacidadOperativaBateria'] as string | number) || ''} onChange={(e) => { handleChange('CapacidadOperativaBateria', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia Carga Max</label>
+                <input type={'number'} disabled={readonly} value={(formData['PotenciaCargaMax'] as string | number) || ''} onChange={(e) => { handleChange('PotenciaCargaMax', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipos Conectores</label>
+                <input type={'text'} disabled={readonly} value={(formData['TiposConectores'] as string | number) || ''} onChange={(e) => { handleChange('TiposConectores', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Garantia Cap Bat</label>
+                <input type={'text'} disabled={readonly} value={(formData['GarantiaCapBat'] as string | number) || ''} onChange={(e) => { handleChange('GarantiaCapBat', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tecnologia Bat</label>
+                <input type={'text'} disabled={readonly} value={(formData['TecnologiaBat'] as string | number) || ''} onChange={(e) => { handleChange('TecnologiaBat', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipo de Vehiculo Electrico / Hibrido</label>
+                <select disabled={readonly} value={(formData['TipodeVehiculoElectricoHibrido'] as string | number) || ''} onChange={(e) => { handleChange('TipodeVehiculoElectricoHibrido', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white">
+                  <option value="">Seleccionar...</option>
+                  <option value="BEV">BEV</option>
+                  <option value="EREV">EREV</option>
+                  <option value="HEV">HEV</option>
+                  <option value="MHEV">MHEV</option>
+                  <option value="PHEV">PHEV</option>
+                  <option value="N/A">N/A</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Cap. Tanque Hidrógeno</label>
+                <input type="checkbox" disabled={readonly} checked={(formData['CapTanqueHidrgeno'] as boolean) || false} onChange={(e) => handleChange('CapTanqueHidrgeno', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Autonomía / Max. Range en kilometros</label>
+                <select disabled={readonly} value={(formData['AutonomaMaxRangeenkilometros'] as string | number) || ''} onChange={(e) => { handleChange('AutonomaMaxRangeenkilometros', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step={1}>
+                  <option value="">Seleccionar...</option>
+                  <option value="N/A">N/A</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia motor (KW)</label>
+                <select disabled={readonly} value={(formData['PotenciamotorKW'] as string | number) || ''} onChange={(e) => { handleChange('PotenciamotorKW', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step={0.01}>
+                  <option value="">Seleccionar...</option>
+                  <option value="N/A">N/A</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Cap. operativa bat. / Battery capacity (Kwh)</label>
+                <select disabled={readonly} value={(formData['CapoperativabatBatterycapacityKwh'] as string | number) || ''} onChange={(e) => { handleChange('CapoperativabatBatterycapacityKwh', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step={0.01}>
+                  <option value="">Seleccionar...</option>
+                  <option value="N/A">N/A</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia de carga- Pot. Máx (KW en CA)</label>
+                <select disabled={readonly} value={(formData['PotenciadecargaPotMxKWenCA'] as string | number) || ''} onChange={(e) => { handleChange('PotenciadecargaPotMxKWenCA', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step={0.01}>
+                  <option value="">Seleccionar...</option>
+                  <option value="N/A">N/A</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipos de conectores</label>
+                <input type="text" list="Tiposdeconectores_list" disabled={readonly} value={(formData['Tiposdeconectores'] as string | number) || ''} onChange={(e) => { handleChange('Tiposdeconectores', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
+                <datalist id="Tiposdeconectores_list">
+                  <option value="Tipo 2" />
+                  <option value="CCS2" />
+                  <option value="N/A" />
+                </datalist>
+              </div>
+            </div>
+          </CardContent>
+        </div>
+      </Card>
+      <Card className="border shadow-sm">
+        <div 
+          className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 transition-colors"
           onClick={() => toggleSeccion('Dimensiones')}
         >
           <h3 className="text-lg font-semibold text-slate-800">Dimensiones</h3>
@@ -63,7 +205,27 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
         
         <div className={seccionesAbiertas['Dimensiones'] ? 'block' : 'hidden'}>
           <CardContent className="pt-0 pb-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4">
+            {'Dimensiones' === 'Electricos' && (
+              <div className="px-4 pb-4 mb-4 border-b bg-slate-50 pt-4 -mx-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mx-4">
+                  <span className="font-semibold text-slate-800 text-lg mb-2 md:mb-0">¿Es un vehículo eléctrico o híbrido?</span>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={isElectrico} onChange={() => setIsElectrico(true)} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">Sí</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={!isElectrico} onChange={() => { 
+                        setIsElectrico(false); 
+                        ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].forEach(f => handleChange(f as any, undefined)); 
+                      }} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">No</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 ${'Dimensiones' === 'Electricos' && !isElectrico ? 'hidden' : 'pt-4'}`}>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Largo</label>
                 <input type={'number'} disabled={readonly} value={(formData['Largo'] as string | number) || ''} onChange={(e) => { 
@@ -305,7 +467,27 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
         
         <div className={seccionesAbiertas['Mecanica'] ? 'block' : 'hidden'}>
           <CardContent className="pt-0 pb-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4">
+            {'Mecanica' === 'Electricos' && (
+              <div className="px-4 pb-4 mb-4 border-b bg-slate-50 pt-4 -mx-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mx-4">
+                  <span className="font-semibold text-slate-800 text-lg mb-2 md:mb-0">¿Es un vehículo eléctrico o híbrido?</span>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={isElectrico} onChange={() => setIsElectrico(true)} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">Sí</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={!isElectrico} onChange={() => { 
+                        setIsElectrico(false); 
+                        ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].forEach(f => handleChange(f as any, undefined)); 
+                      }} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">No</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 ${'Mecanica' === 'Electricos' && !isElectrico ? 'hidden' : 'pt-4'}`}>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Cilindros</label>
                 <select disabled={readonly} value={(formData['Cilindros'] as string | number) || ''} onChange={(e) => { 
@@ -413,7 +595,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Aceleracion BEV 0 a 100</label>
-                <input type={'number'} disabled={readonly} value={(formData['AceleracionBEV_0a100'] as string | number) || ''} onChange={(e) => { handleChange('AceleracionBEV_0a100', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step="any" />
+                <input type={'number'} disabled={readonly} value={(formData['AceleracionBEV_0a100'] as string | number) || ''} onChange={(e) => { handleChange('AceleracionBEV_0a100', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Chassis Drive Select</label>
@@ -425,15 +607,15 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Consumo ruta (l/100 km)</label>
-                <input type={'number'} disabled={readonly} value={(formData['Consumorutal100km'] as string | number) || ''} onChange={(e) => { handleChange('Consumorutal100km', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step="any" />
+                <input type={'number'} disabled={readonly} value={(formData['Consumorutal100km'] as string | number) || ''} onChange={(e) => { handleChange('Consumorutal100km', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step={0.01} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Consumo urbano (l/100 km)</label>
-                <input type={'number'} disabled={readonly} value={(formData['Consumourbanol100km'] as string | number) || ''} onChange={(e) => { handleChange('Consumourbanol100km', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step="any" />
+                <input type={'number'} disabled={readonly} value={(formData['Consumourbanol100km'] as string | number) || ''} onChange={(e) => { handleChange('Consumourbanol100km', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step={0.01} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Consumo mixto (l/100 km)</label>
-                <input type={'number'} disabled={readonly} value={(formData['Consumomixtol100km'] as string | number) || ''} onChange={(e) => { handleChange('Consumomixtol100km', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step="any" />
+                <input type={'number'} disabled={readonly} value={(formData['Consumomixtol100km'] as string | number) || ''} onChange={(e) => { handleChange('Consumomixtol100km', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step={0.01} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Par del Motor - torque (Nm)</label>
@@ -470,7 +652,27 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
         
         <div className={seccionesAbiertas['Equipamiento'] ? 'block' : 'hidden'}>
           <CardContent className="pt-0 pb-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4">
+            {'Equipamiento' === 'Electricos' && (
+              <div className="px-4 pb-4 mb-4 border-b bg-slate-50 pt-4 -mx-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mx-4">
+                  <span className="font-semibold text-slate-800 text-lg mb-2 md:mb-0">¿Es un vehículo eléctrico o híbrido?</span>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={isElectrico} onChange={() => setIsElectrico(true)} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">Sí</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={!isElectrico} onChange={() => { 
+                        setIsElectrico(false); 
+                        ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].forEach(f => handleChange(f as any, undefined)); 
+                      }} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">No</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 ${'Equipamiento' === 'Electricos' && !isElectrico ? 'hidden' : 'pt-4'}`}>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">T P M S</label>
                 <input type="checkbox" disabled={readonly} checked={(formData['TPMS'] as boolean) || false} onChange={(e) => handleChange('TPMS', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
@@ -679,17 +881,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Sistema Multimedia</label>
-                <input type="text" list="SistemaMultimedia_list" disabled={readonly} value={(formData['SistemaMultimedia'] as string | number) || ''} onChange={(e) => { handleChange('SistemaMultimedia', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-                <datalist id="SistemaMultimedia_list">
-                  <option value="Composition Media" />
-                  <option value="Full Link" />
-                  <option value="Media Nav" />
-                  <option value="Media Sistem" />
-                  <option value="Mirror Link" />
-                  <option value="Touch Infotainment" />
-                  <option value="Nissan door-to-door" />
-                  <option value="R-Link Evolution" />
-                </datalist>
+                <input type={'text'} disabled={readonly} value={(formData['SistemaMultimedia'] as string | number) || ''} onChange={(e) => { handleChange('SistemaMultimedia', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Pantalla Multimedia Pulgadas</label>
@@ -878,11 +1070,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Bloque Diferencial Terreno</label>
-                <select disabled={readonly} value={(formData['BloqueDiferencialTerreno'] as string | number) || ''} onChange={(e) => { handleChange('BloqueDiferencialTerreno', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white">
-                  <option value="">Seleccionar...</option>
-                  <option value="Si">Si</option>
-                  <option value="No">No</option>
-                </select>
+                <input type={'text'} disabled={readonly} value={(formData['BloqueDiferencialTerreno'] as string | number) || ''} onChange={(e) => { handleChange('BloqueDiferencialTerreno', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Desempaniador Electrico</label>
@@ -910,7 +1098,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Acceleration ICE</label>
-                <input type={'number'} disabled={readonly} value={(formData['AccelerationICE'] as string | number) || ''} onChange={(e) => { handleChange('AccelerationICE', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step="any" />
+                <input type={'number'} disabled={readonly} value={(formData['AccelerationICE'] as string | number) || ''} onChange={(e) => { handleChange('AccelerationICE', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Cable electrico tipo 3 incluido</label>
@@ -1182,7 +1370,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Pant. Multimedia (")</label>
-                <input type={'number'} disabled={readonly} value={(formData['PantMultimedia'] as string | number) || ''} onChange={(e) => { handleChange('PantMultimedia', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step="any" />
+                <input type={'number'} disabled={readonly} value={(formData['PantMultimedia'] as string | number) || ''} onChange={(e) => { handleChange('PantMultimedia', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Kit Hi Fi (Bose/JBL/Focal)</label>
@@ -1359,126 +1547,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Lumbar, Lumbar adjustment front (Co-Driver)</label>
                 <input type="checkbox" disabled={readonly} checked={(formData['LumbarLumbaradjustmentfrontCoDriver'] as boolean) || false} onChange={(e) => handleChange('LumbarLumbaradjustmentfrontCoDriver', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
-
-              <div className="col-span-full border-t pt-4 mt-2">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-semibold text-slate-800 text-lg">Vehiculo Eléctrico o Híbrido</span>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="is_electrico_toggle" checked={isElectrico} onChange={() => setIsElectrico(true)} disabled={readonly} className="text-brand-blue ring-brand-blue" />
-                      <span className="text-base font-medium">Sí</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="is_electrico_toggle" checked={!isElectrico} onChange={() => { setIsElectrico(false); ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].forEach(f => handleChange(f as any, undefined)); }} disabled={readonly} className="text-brand-blue ring-brand-blue" />
-                      <span className="text-base font-medium">No</span>
-                    </label>
-                  </div>
-                </div>
-                {isElectrico && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                    <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipo Vehiculo Electrico</label>
-                <input type={'text'} disabled={readonly} value={(formData['TipoVehiculoElectrico'] as string | number) || ''} onChange={(e) => { handleChange('TipoVehiculoElectrico', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">E-Pedal</label>
-                <input type="checkbox" disabled={readonly} checked={(formData['EPedal'] as boolean) || false} onChange={(e) => handleChange('EPedal', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Capacidad Tanque Hidrogeno</label>
-                <input type={'number'} disabled={readonly} value={(formData['CapacidadTanqueHidrogeno'] as string | number) || ''} onChange={(e) => { handleChange('CapacidadTanqueHidrogeno', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Ciclo/norma</label>
-                <input type="text" list="CicloNorma_list" disabled={readonly} value={(formData['CicloNorma'] as string | number) || ''} onChange={(e) => { handleChange('CicloNorma', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-                <datalist id="CicloNorma_list">
-                  <option value="NEDC" />
-                  <option value="WLTP" />
-                  <option value="N/A" />
-                </datalist>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia Motor</label>
-                <input type={'number'} disabled={readonly} value={(formData['PotenciaMotor'] as string | number) || ''} onChange={(e) => { handleChange('PotenciaMotor', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Capacidad Operativa Bateria</label>
-                <input type={'number'} disabled={readonly} value={(formData['CapacidadOperativaBateria'] as string | number) || ''} onChange={(e) => { handleChange('CapacidadOperativaBateria', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia Carga Max</label>
-                <input type={'number'} disabled={readonly} value={(formData['PotenciaCargaMax'] as string | number) || ''} onChange={(e) => { handleChange('PotenciaCargaMax', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipos Conectores</label>
-                <input type={'text'} disabled={readonly} value={(formData['TiposConectores'] as string | number) || ''} onChange={(e) => { handleChange('TiposConectores', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Garantia Cap Bat</label>
-                <input type={'text'} disabled={readonly} value={(formData['GarantiaCapBat'] as string | number) || ''} onChange={(e) => { handleChange('GarantiaCapBat', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tecnologia Bat</label>
-                <input type={'text'} disabled={readonly} value={(formData['TecnologiaBat'] as string | number) || ''} onChange={(e) => { handleChange('TecnologiaBat', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipo de Vehiculo Electrico / Hibrido</label>
-                <select disabled={readonly} value={(formData['TipodeVehiculoElectricoHibrido'] as string | number) || ''} onChange={(e) => { handleChange('TipodeVehiculoElectricoHibrido', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white">
-                  <option value="">Seleccionar...</option>
-                  <option value="BEV">BEV</option>
-                  <option value="EREV">EREV</option>
-                  <option value="HEV">HEV</option>
-                  <option value="MHEV">MHEV</option>
-                  <option value="PHEV">PHEV</option>
-                  <option value="N/A">N/A</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Cap. Tanque Hidrógeno</label>
-                <input type="checkbox" disabled={readonly} checked={(formData['CapTanqueHidrgeno'] as boolean) || false} onChange={(e) => handleChange('CapTanqueHidrgeno', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Autonomía / Max. Range en kilometros</label>
-                <select disabled={readonly} value={(formData['AutonomaMaxRangeenkilometros'] as string | number) || ''} onChange={(e) => { handleChange('AutonomaMaxRangeenkilometros', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step={1}>
-                  <option value="">Seleccionar...</option>
-                  <option value="N/A">N/A</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia motor (KW)</label>
-                <select disabled={readonly} value={(formData['PotenciamotorKW'] as string | number) || ''} onChange={(e) => { handleChange('PotenciamotorKW', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step="any">
-                  <option value="">Seleccionar...</option>
-                  <option value="N/A">N/A</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Cap. operativa bat. / Battery capacity (Kwh)</label>
-                <select disabled={readonly} value={(formData['CapoperativabatBatterycapacityKwh'] as string | number) || ''} onChange={(e) => { handleChange('CapoperativabatBatterycapacityKwh', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step="any">
-                  <option value="">Seleccionar...</option>
-                  <option value="N/A">N/A</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Potencia de carga- Pot. Máx (KW en CA)</label>
-                <select disabled={readonly} value={(formData['PotenciadecargaPotMxKWenCA'] as string | number) || ''} onChange={(e) => { handleChange('PotenciadecargaPotMxKWenCA', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white" step="any">
-                  <option value="">Seleccionar...</option>
-                  <option value="N/A">N/A</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipos de conectores</label>
-                <input type="text" list="Tiposdeconectores_list" disabled={readonly} value={(formData['Tiposdeconectores'] as string | number) || ''} onChange={(e) => { handleChange('Tiposdeconectores', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" />
-                <datalist id="Tiposdeconectores_list">
-                  <option value="Tipo 2" />
-                  <option value="CCS2" />
-                  <option value="N/A" />
-                </datalist>
-              </div>
-
-                  </div>
-                )}
-              </div>
-                  </div>
+            </div>
           </CardContent>
         </div>
       </Card>

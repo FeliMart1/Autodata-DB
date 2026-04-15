@@ -22,26 +22,7 @@ function getFieldOptionsAndProps(fieldName) {
     extraOnKeyDown: false
   };
 
-  
-  if (normField.includes('sistemamultimedia') || normField.includes('sistmultimedia')) {
-      result.inputType = 'datalist';
-      result.options = ['Composition Media', 'Full Link', 'Media Nav', 'Media Sistem', 'Mirror Link', 'Touch Infotainment', 'Nissan door-to-door', 'R-Link Evolution'];
-  }
-  if (normField.includes('maleteraapertura')) {
-      result.inputType = 'select';
-      result.options = ['Motorizada', 'Foot-control', 'No'];
-  }
-  if (normField.includes('bloqueodiferencialporterreno') || normField.includes('bloquediferencialterreno') || normField.includes('bloqueodiferencialpor') || normField.includes('bloquediferencial')) {
-      result.inputType = 'select';
-      result.options = ['Si', 'No'];
-  }
-  if (normField.includes('pardelmotor')) {
-      result.props.step = 1;
-      result.extraOnKeyDown = true;
-  }
-  
   if (!matchingKey) return result;
-  
 
   const rules = configData[matchingKey] || [];
   const rulesStr = rules.join(' ').toLowerCase();
@@ -61,13 +42,11 @@ function getFieldOptionsAndProps(fieldName) {
     result.extraOnKeyDown = true;
   }
 
-  if (rulesStr.includes('con decimales') || rulesStr.includes('dos decimales')) {
-    result.props.step = 'any';
-  } else if (rulesStr.includes('sin decimales') || rulesStr.includes('cuatro cifras') || rulesStr.includes('dos cifras') || normField.includes('pardelmotor')) {
+  if (rulesStr.includes('con decimales')) {
+    result.props.step = 0.01;
+  } else if (rulesStr.includes('sin decimales') || rulesStr.includes('cuatro cifras') || rulesStr.includes('dos cifras')) {
     result.props.step = 1;
     result.extraOnKeyDown = true;
-  } else if (result.inputType === 'number') {
-    result.props.step = 'any';
   }
 
   if (rulesStr.includes('2 ó 3 letras en mayúsculas') || rulesStr.includes('2 o 3 letras en mayúsculas') || normField === 'origen') {
@@ -121,17 +100,18 @@ const parsedFields = equipamientoFields.map(field => {
   return { name: match[1], type: getTsType(match[2]) };
 }).filter(Boolean);
 
-
 const categorizer = (field) => {
   const name = field.name.toLowerCase();
-  if (["tipovehiculoelectrico","tipodevehiculoelectrico","epedal","capacidadtanquehidrogeno","captanquehidrgeno","autonomamaxrange","autonomamaxrangeenkilometros","ciclonorma","potenciamotor","potenciamotorkw","capacidadoperativabateria","capoperativabat","potenciacargamax","potenciadecargapotmxkwenca","tiposconectores","tiposdeconectores","garantiacapbat","tecnologiabat"].some(k => name.includes(k))) return 'Electrico_Fields';
+  
+  // Custom categorizer intercept para Eléctricos
+  if (["tipovehiculoelectrico","tipodevehiculoelectrico","epedal","capacidadtanquehidrogeno","captanquehidrgeno","autonomamaxrange","autonomamaxrangeenkilometros","ciclonorma","potenciamotor","potenciamotorkw","capacidadoperativabateria","capoperativabat","potenciacargamax","potenciadecargapotmxkwenca","tiposconectores","tiposdeconectores","garantiacapbat","tecnologiabat"].some(k => name.includes(k))) return 'Electricos';
 
   if (['largo', 'ancho', 'altura', 'peso', 'ejes', 'puertas', 'asientos', 'kg', 'capacidad', 'volumen', 'carga', 'neumaticos', 'llantas', 'diametro', 'despeje'].some(k => name.includes(k))) return 'Dimensiones';
   if (['cilindros', 'valvulas', 'inyeccion', 'traccion', 'suspension', 'caja', 'marchas', 'turbo', 'aceite', 'norma', 'startstop', 'motor', 'bateria', 'epedal', 'consumo', 'co2', 'aceleracion', 'chassis', 'freno'].some(k => name.includes(k))) return 'Mecanica';
   return 'Equipamiento';
 };
 
-const categorizedFields = { Dimensiones: [], 'Mecanica': [], Equipamiento: [], Electrico_Fields: [] };
+const categorizedFields = { Electricos: [], Dimensiones: [], 'Mecanica': [], Equipamiento: [] };
 
 parsedFields.forEach(field => {
   if (['EquipamientoID', 'ModeloID', 'CreadoPorID', 'FechaCreacion', 'ModificadoPorID', 'FechaModificacion'].includes(field.name)) return;
@@ -161,12 +141,16 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   onChange,
   readonly = false
 }) => {
-  const [formData, setFormData] = useState<Partial<EquipamientoModelo>>(equipamiento);
+  const [formData, setFormData] = useState<Partial<EquipamientoModelo>>(equipamiento || {});
   const [seccionesAbiertas, setSeccionesAbiertas] = useState<Record<string, boolean>>({
+    Electricos: true,
     Dimensiones: true,
     Mecanica: false,
     Equipamiento: false
-  });
+    });
+
+  const isElectricoInitial = ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].some((f) => (equipamiento || {})[f] != null && (equipamiento || {})[f] !== '' && (equipamiento || {})[f] !== false);
+  const [isElectrico, setIsElectrico] = useState(isElectricoInitial);
 
   const handleChange = (field: keyof EquipamientoModelo, value: any) => {
     const newData = { ...formData, [field]: value };
@@ -190,7 +174,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
     <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); if (onSendRevision) handleAction('revision'); }}>
 `;
 
-Object.keys(categorizedFields).filter(c => c !== 'Electrico_Fields').forEach(category => {
+Object.keys(categorizedFields).forEach(category => {
   const fields = categorizedFields[category];
   if (!fields.length) return;
   
@@ -209,7 +193,27 @@ Object.keys(categorizedFields).filter(c => c !== 'Electrico_Fields').forEach(cat
         
         <div className={seccionesAbiertas['${category}'] ? 'block' : 'hidden'}>
           <CardContent className="pt-0 pb-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4">
+            {'${category}' === 'Electricos' && (
+              <div className="px-4 pb-4 mb-4 border-b bg-slate-50 pt-4 -mx-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mx-4">
+                  <span className="font-semibold text-slate-800 text-lg mb-2 md:mb-0">¿Es un vehículo eléctrico o híbrido?</span>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={isElectrico} onChange={() => setIsElectrico(true)} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">Sí</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="is_electrico_toggle" checked={!isElectrico} onChange={() => { 
+                        setIsElectrico(false); 
+                        ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].forEach(f => handleChange(f as any, undefined)); 
+                      }} disabled={readonly} className="text-brand-blue ring-brand-blue w-5 h-5" />
+                      <span className="text-base font-medium">No</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={\`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4 \${'${category}' === 'Electricos' && !isElectrico ? 'hidden' : 'pt-4'}\`}>
 `;
 
   fields.forEach(f => {
@@ -274,96 +278,10 @@ Object.keys(categorizedFields).filter(c => c !== 'Electrico_Fields').forEach(cat
     reactContent += `              </div>\n`;
   });
 
-  
-  if (category === 'Equipamiento' && categorizedFields['Electrico_Fields'] && categorizedFields['Electrico_Fields'].length) {
-      reactContent += `
-              <div className="col-span-full border-t pt-4 mt-2">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-semibold text-slate-800 text-lg">Vehiculo Eléctrico o Híbrido</span>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="is_electrico_toggle" checked={isElectrico} onChange={() => setIsElectrico(true)} disabled={readonly} className="text-brand-blue ring-brand-blue" />
-                      <span className="text-base font-medium">Sí</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="is_electrico_toggle" checked={!isElectrico} onChange={() => { setIsElectrico(false); ['TipoVehiculoElectrico','TipodeVehiculoElectricoHibrido','EPedal','CapacidadTanqueHidrogeno','CapTanqueHidrgeno','AutonomiaMaxRange','AutonomaMaxRangeenkilometros','CicloNorma','PotenciaMotor','PotenciamotorKW','CapacidadOperativaBateria','CapoperativabatBatterycapacityKwh','PotenciaCargaMax','PotenciadecargaPotMxKWenCA','TiposConectores','Tiposdeconectores','GarantiaCapBat','TecnologiaBat'].forEach(f => handleChange(f as any, undefined)); }} disabled={readonly} className="text-brand-blue ring-brand-blue" />
-                      <span className="text-base font-medium">No</span>
-                    </label>
-                  </div>
-                </div>
-                {isElectrico && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-      `;
-      
-      categorizedFields['Electrico_Fields'].forEach(f => {
-        const c = getFieldOptionsAndProps(f.name);
-        let propsObj = {...c.props};
-        let extraPropsStr = '';
-        Object.keys(propsObj).forEach(k => {
-          let val = propsObj[k];
-          if (typeof val === 'string') extraPropsStr += ` ${k}="${val}"`;
-          else extraPropsStr += ` ${k}={${val}}`;
-        });
-        
-        let onKeyDownCode = '';
-        if (c.extraOnKeyDown) {
-            onKeyDownCode = ` onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}`;
-        }
-
-        let onChangeCode = `handleChange('${f.name}', e.target.value);`;
-
-        if (f.type === 'number' || c.inputType === 'number') {
-            if (c.maxLengthToSlice) {
-                onChangeCode = `
-                const raw = e.target.value;
-                let sliced = raw;
-                if (raw && raw.length > ${c.maxLengthToSlice}) {
-                  sliced = raw.slice(0, ${c.maxLengthToSlice});
-                }
-                handleChange('${f.name}', sliced === '' ? undefined : parseFloat(sliced));
-                `;
-            } else {
-                onChangeCode = `handleChange('${f.name}', e.target.value === '' ? undefined : parseFloat(e.target.value));`;
-            }
-        } 
-        
-        if (c.props.pattern === "^[A-Z]*$") {
-            onChangeCode = `handleChange('${f.name}', e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase());`;
-        }
-
-        reactContent += `              <div className="flex flex-col gap-1.5">\n`;
-        reactContent += `                <label className="text-sm font-medium text-slate-700 leading-tight break-words">${c.label || f.name.replace(/([A-Z])/g, ' $1').trim()}</label>\n`;
-        if (f.type === 'boolean') {
-            reactContent += `                <input type="checkbox" disabled={readonly} checked={(formData['${f.name}'] as boolean) || false} onChange={(e) => handleChange('${f.name}', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />\n`;
-        } else if (c.inputType === 'select') {
-            reactContent += `                <select disabled={readonly} value={(formData['${f.name}'] as string | number) || ''} onChange={(e) => { ${onChangeCode} }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white"${extraPropsStr}>\n`;
-            reactContent += `                  <option value="">Seleccionar...</option>\n`;
-            c.options.forEach(opt => {
-                reactContent += `                  <option value="${opt}">${opt}</option>\n`;
-            });
-            reactContent += `                </select>\n`;
-        } else if (c.inputType === 'datalist') {
-            reactContent += `                <input type="text" list="${f.name}_list" disabled={readonly} value={(formData['${f.name}'] as string | number) || ''} onChange={(e) => { ${onChangeCode} }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50"${extraPropsStr}${onKeyDownCode} />\n`;
-            reactContent += `                <datalist id="${f.name}_list">\n`;
-            c.options.forEach(opt => {
-                reactContent += `                  <option value="${opt}" />\n`;
-            });
-            reactContent += `                </datalist>\n`;
-        } else {
-            reactContent += `                <input type={'${c.inputType === 'number' || f.type === 'number' ? 'number' : 'text'}'} disabled={readonly} value={(formData['${f.name}'] as string | number) || ''} onChange={(e) => { ${onChangeCode} }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50"${extraPropsStr}${onKeyDownCode} />\n`;
-        }
-        
-        reactContent += `              </div>\n`;
-      });
-      
-      reactContent += `
-                  </div>
-                )}
-              </div>
-      `;
-  }
-  reactContent += `            </div>\n          </CardContent>\n        </div>\n      </Card>\n`;
-
+  reactContent += `            </div>
+          </CardContent>
+        </div>
+      </Card>\n`;
 });
 
 reactContent += `
