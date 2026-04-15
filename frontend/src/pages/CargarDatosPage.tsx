@@ -11,8 +11,9 @@ import estadoService from '@services/estadoService';
 import { equipamientoService } from '@services/equipamientoService';
 import { useToast } from '@context/ToastContext';
 import { Modelo, ModeloEstado } from '@/types';
-import { Search, Send, AlertCircle, FileText } from 'lucide-react';
+import { Search, Send, AlertCircle, FileText, Filter } from 'lucide-react';
 import { Input } from '@components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/Select';
 import { FormularioDatosMinimos } from '@components/modelos/FormularioDatosMinimos';
 import { FormularioEquipamiento } from '@components/modelos/FormularioEquipamiento';
 
@@ -23,6 +24,7 @@ export function CargarDatosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState<string>('todos');
   const [tabActiva, setTabActiva] = useState<'minimos' | 'equipamiento'>('minimos');
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -206,11 +208,23 @@ const handleEnviarARevision = async (formData: any) => {
 
   const modelosFiltrados = modelos.filter(m => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = 
       m.DescripcionModelo?.toLowerCase().includes(searchLower) ||
       m.MarcaNombre?.toLowerCase().includes(searchLower) ||
-      m.CodigoAutodata?.includes(searchLower)
-    );
+      m.CodigoAutodata?.includes(searchLower);
+
+    let matchesEstado = true;
+    if (estadoFilter === 'minimos_pendientes') {
+      matchesEstado = [ModeloEstado.IMPORTADO, ModeloEstado.CREADO, ModeloEstado.DATOS_MINIMOS].includes(m.Estado);
+    } else if (estadoFilter === 'minimos_corregir') {
+      matchesEstado = m.Estado === ModeloEstado.CORREGIR_MINIMOS;
+    } else if (estadoFilter === 'equipamiento_pendiente') {
+      matchesEstado = [ModeloEstado.MINIMOS_APROBADOS, ModeloEstado.EQUIPAMIENTO_CARGADO].includes(m.Estado);
+    } else if (estadoFilter === 'equipamiento_corregir') {
+      matchesEstado = m.Estado === ModeloEstado.CORREGIR_EQUIPAMIENTO;
+    }
+
+    return matchesSearch && matchesEstado;
   });
 
   if (isLoading) {
@@ -238,7 +252,7 @@ const handleEnviarARevision = async (formData: any) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
+            <div className="mb-4 space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -247,6 +261,21 @@ const handleEnviarARevision = async (formData: any) => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-500" />
+                <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Filtrar por estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los pendientes</SelectItem>
+                    <SelectItem value="minimos_pendientes">Carga Datos Mínimos</SelectItem>
+                    <SelectItem value="minimos_corregir">A corregir Mínimos</SelectItem>
+                    <SelectItem value="equipamiento_pendiente">Carga Equipamiento</SelectItem>
+                    <SelectItem value="equipamiento_corregir">A corregir Equipamiento</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

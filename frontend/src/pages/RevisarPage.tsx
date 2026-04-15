@@ -13,8 +13,9 @@ import { equipamientoService } from '@services/equipamientoService';
 import { FormularioEquipamiento } from '@components/modelos/FormularioEquipamiento';
 import { useToast } from '@context/ToastContext';
 import { Modelo, ModeloEstado } from '@/types';
-import { Search, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Search, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react';
 import { Input } from '@components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/Select';
 
 export function RevisarPage() {
   const [modelos, setModelos] = useState<Modelo[]>([]);
@@ -23,6 +24,7 @@ export function RevisarPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState<string>('todos');
   const [tabActiva, setTabActiva] = useState<'minimos' | 'equipamiento'>('minimos');
   const [observaciones, setObservaciones] = useState('');
   const { addToast } = useToast();
@@ -143,11 +145,19 @@ export function RevisarPage() {
 
   const modelosFiltrados = modelos.filter(m => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const searchMatch = 
       m.DescripcionModelo?.toLowerCase().includes(searchLower) ||
       m.MarcaNombre?.toLowerCase().includes(searchLower) ||
-      m.CodigoAutodata?.includes(searchLower)
-    );
+      m.CodigoAutodata?.includes(searchLower);
+
+    let estadoMatch = true;
+    if (estadoFilter === 'revision_minimos') {
+      estadoMatch = m.Estado === ModeloEstado.REVISION_MINIMOS;
+    } else if (estadoFilter === 'revision_equipamiento') {
+      estadoMatch = m.Estado === ModeloEstado.REVISION_EQUIPAMIENTO;
+    }
+
+    return searchMatch && estadoMatch;
   });
 
   if (isLoading) {
@@ -170,15 +180,30 @@ export function RevisarPage() {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Modelos en Revisión</CardTitle>
-            <div className="mt-2 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Buscar modelo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div className="mt-4 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar modelo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-500" />
+                <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Filtrar por tipo de revisión" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las revisiones</SelectItem>
+                    <SelectItem value="revision_minimos">Revisión: Datos Mínimos</SelectItem>
+                    <SelectItem value="revision_equipamiento">Revisión: Equipamiento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
