@@ -6,7 +6,8 @@ import { Badge } from '@components/ui/Badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/Tabs';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { Alert } from '@components/ui/Alert';
-import { DatosMinimosForm } from '@components/modelos/DatosMinimosForm';
+import { FormularioCargaModelo } from '@components/modelos/FormularioCargaModelo';
+import { FormularioDatosMinimos } from '@components/modelos/FormularioDatosMinimos';
 import { ModeloDetailView } from '@components/modelos/ModeloDetailView';
 import { EquipamientoView } from '@components/equipamiento/EquipamientoView';
 import { EquipamientoForm } from '@components/equipamiento/EquipamientoForm';
@@ -194,24 +195,24 @@ export function ModeloDetailPage() {
               <div>
                 <h1 className="text-3xl font-bold">Nuevo Modelo</h1>
                 <p className="text-muted-foreground mt-1">
-                  Completa los datos mínimos para crear un nuevo modelo
+                  Completa los datos de carga inicial. Una vez creado, podrás ir a Cargar Datos.
                 </p>
               </div>
             </div>
           }
         />
 
-        <DatosMinimosForm
-          modelo={null}
-          onUpdate={(createdModeloId) => {
-            addToast('Modelo creado exitosamente', 'success');
-            // Redirigir al modelo recién creado en modo lectura
-            if (createdModeloId) {
-              navigate(`/modelos/${createdModeloId}`);
-            }
-          }}
-          readOnly={false}
-        />
+        <FormularioCargaModelo 
+            onSave={async (data) => {
+              try {
+                await modeloService.create(data as any);
+                addToast('Modelo creado exitosamente', 'success');
+                navigate('/cargar-datos');
+              } catch (err: any) {
+                addToast(err?.response?.data?.message || 'Error al crear el modelo', 'error');
+              }
+            }}
+          />
       </div>
     );
   }

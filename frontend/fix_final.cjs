@@ -1,1 +1,0 @@
-const fs = require('fs'); let content = fs.readFileSync('scripts/generate-form-equipamiento-updated.cjs', 'utf-8'); content = content.replace(/{([A-Z][a-z\d]+) ===/g, '{\'' + String.fromCharCode(36) + '1\' ==='); fs.writeFileSync('scripts/generate-form-equipamiento-updated.cjs', content, 'utf-8');

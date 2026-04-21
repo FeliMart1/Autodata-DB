@@ -1,1 +1,0 @@
-﻿const db = require('./src/config/db-simple'); async function main() { const cols = await db.queryRaw('SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=\'EquipamientoModelo\''); console.log(JSON.stringify(cols)); process.exit(0); } main();

@@ -36,4 +36,15 @@ export const marcasService = {
   delete: async (id: number): Promise<void> => {
     await apiClient.delete(`/marcas/${id}`);
   },
+
+  importarExcel: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post<any>('/marcas/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
 };

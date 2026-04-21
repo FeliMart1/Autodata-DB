@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Upload } from 'lucide-react';
 import { Button } from '@components/ui/Button';
 import { Input } from '@components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
@@ -37,6 +37,7 @@ import { Marca, CreateMarcaRequest, UpdateMarcaRequest } from '@/types/marca';
 export function MarcasPage() {
   const [search, setSearch] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [editingMarca, setEditingMarca] = useState<Marca | null>(null);
   const [deletingMarca, setDeletingMarca] = useState<Marca | null>(null);
   
@@ -104,14 +105,48 @@ export function MarcasPage() {
     }
   };
 
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const response = await marcasService.importarExcel(file);
+      if (response.success) {
+        toast(`Importación exitosa: ${response.data.procesadas} marcas creadas. ${response.data.omitidas > 0 ? `(${response.data.omitidas} omitidas/repetidas)` : ''}`, 'success');
+        queryClient.invalidateQueries({ queryKey: ['marcas'] });
+      } else {
+        toast(response.message || 'Error en la importación', 'error');
+      }
+    } catch (error: any) {
+      toast(error.message || 'Error al importar', 'error');
+    } finally {
+      setIsImporting(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gestión de Marcas</h1>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Marca
-        </Button>
+        <div className="flex gap-2">
+          <input
+            type="file"
+            id="import-excel"
+            className="hidden"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleImportExcel}
+          />
+          <Button variant="outline" onClick={() => document.getElementById('import-excel')?.click()} disabled={isImporting}>
+            <Upload className="mr-2 h-4 w-4" />
+            {isImporting ? 'Importando...' : 'Importar Excel'}
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Marca
+          </Button>
+        </div>
       </div>
 
       <Card>

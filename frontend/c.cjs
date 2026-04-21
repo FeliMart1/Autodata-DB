@@ -1,1 +1,0 @@
-const fs = require('fs'); let c = fs.readFileSync('scripts/generate-form-equipamiento-updated.cjs', 'utf8'); c = c.split('{category ===').join('{$'+'{category} ==='); fs.writeFileSync('scripts/generate-form-equipamiento-updated.cjs', c); 

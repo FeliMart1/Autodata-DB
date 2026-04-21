@@ -143,6 +143,7 @@ export interface VersionModelo {
 
 // Equipamiento del modelo
 export interface EquipamientoModelo {
+  [key: string]: any;
   EquipamientoID?: number;
   ModeloID?: number;
   Largo?: number;

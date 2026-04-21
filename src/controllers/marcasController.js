@@ -1,5 +1,6 @@
 const db = require('../config/db-simple');
 const logger = require('../config/logger');
+const xlsx = require('xlsx');
 const { obtenerProximoCodigoMarca, formatToCodigo4, existeCodigoMarca } = require('../utils/codigoAutodata');
 
 // GET /api/marcas - Listar todas las marcas
@@ -248,5 +249,74 @@ exports.delete = async (req, res) => {
       message: 'Error al eliminar marca',
       error: error.message
     });
+  }
+};
+
+exports.importarExcel = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se subi� ning�n archivo' });
+    }
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(sheet);
+
+    let procesadas = 0;
+    let omitidas = 0;
+    let errores = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const marcod = row['MARCOD']?.toString().trim();
+      const mardsc = row['MARDSC']?.toString().trim();
+      const origen = row['ORIGEN']?.toString().trim();
+
+      if (!marcod || !mardsc || !origen) {
+        omitidas++;
+        errores.push(`Fila ${i + 2}: Faltan datos (MARCOD, MARDSC u ORIGEN).`);
+        continue;
+      }
+
+      // Check if it already exists
+      const existente = await db.queryRaw(`SELECT MarcaID FROM Marca WHERE CodigoMarca = '${marcod}'`);
+      if (existente.length > 0) {
+        omitidas++;
+        errores.push(`Fila ${i + 2}: El código de marca '${marcod}' ya existe.`);
+        continue;
+      }
+
+      // Check if name already exists
+      const nombreExistente = await db.queryRaw(`SELECT MarcaID FROM Marca WHERE Descripcion = '${mardsc}'`);
+      if (nombreExistente.length > 0) {
+        omitidas++;
+        errores.push(`Fila ${i + 2}: El nombre de marca '${mardsc}' ya existe.`);
+        continue;
+      }
+      
+      const marcaData = {
+        CodigoMarca: marcod,
+        Descripcion: mardsc,
+        Origen: origen
+      };
+
+      await db.insert('Marca', marcaData);
+      procesadas++;
+    }
+
+    res.json({
+      success: true,
+      message: 'Proceso de importación finalizado',
+      data: {
+        procesadas,
+        omitidas,
+        errores
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error al importar marcas:', error);
+    res.status(500).json({ success: false, message: 'Error en la importación', error: error.message });
   }
 };

@@ -1,0 +1,1 @@
+const db = require('./src/config/db-simple'); db.queryRaw("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EquipamientoModelo' AND COLUMN_NAME='VelocidadCrucero'").then(r => console.log(r));

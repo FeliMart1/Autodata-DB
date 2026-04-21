@@ -442,7 +442,7 @@ const importarExcelAutos = async (req, res) => {
       if (!marcaIdMap.has(mod.codMarca)) {
          let dbMarca = await db.queryWithParams('SELECT MarcaID FROM Marca WHERE CodigoMarca = @p0', [mod.codMarca]);
          if (dbMarca.length === 0) {
-           const insertRes = await db.queryRaw(`INSERT INTO Marca (Descripcion, CodigoMarca, Activo) OUTPUT INSERTED.MarcaID VALUES (N'${mod.marcaDesc.replace(/'/g, "''")}', '${mod.codMarca}', 1)`);
+            const insertRes = await db.queryRaw(`INSERT INTO Marca (Descripcion, CodigoMarca) OUTPUT INSERTED.MarcaID VALUES (N'${mod.marcaDesc.replace(/'/g, "''")}', '${mod.codMarca}')`);
            if(insertRes && insertRes.length > 0) { marcaIdMap.set(mod.codMarca, insertRes[0].MarcaID); creados.marcas++; }
          } else { marcaIdMap.set(mod.codMarca, dbMarca[0].MarcaID); }
       }

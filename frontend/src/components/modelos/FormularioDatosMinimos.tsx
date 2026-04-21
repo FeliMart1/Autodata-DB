@@ -137,15 +137,28 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 <label className="block text-sm font-medium mb-1">
                   Segmento <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.SegmentacionAutodata || ''}
                   onChange={(e) => handleChange('SegmentacionAutodata', e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  placeholder="Ej: C-Segment"
-                />
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="ALTA GAMA, DEPORT. y CONVERT.">ALTA GAMA, DEPORT. y CONVERT.</option>
+                  <option value="CHICOS">CHICOS</option>
+                  <option value="GRANDES">GRANDES</option>
+                  <option value="MEDIANOS">MEDIANOS</option>
+                  <option value="MEDIANOS COMPACTOS">MEDIANOS COMPACTOS</option>
+                  <option value="MONOVOLUMEN">MONOVOLUMEN</option>
+                  <option value="P.UP / DC MEDIANOS y GRANDES">P.UP / DC MEDIANOS y GRANDES</option>
+                  <option value="P.UP/ DC COMPACTOS">P.UP/ DC COMPACTOS</option>
+                  <option value="P.UP/ DC LIVIANOS">P.UP/ DC LIVIANOS</option>
+                  <option value="SUV y CROSSOVER">SUV y CROSSOVER</option>
+                  <option value="UTILITARIOS COMPACTOS">UTILITARIOS COMPACTOS</option>
+                  <option value="UTILITARIOS LIVIANOS">UTILITARIOS LIVIANOS</option>
+                  <option value="UTILITARIOS MEDIANOS y GRANDES">UTILITARIOS MEDIANOS y GRANDES</option>
+                </select>
               </div>
 
               <div>
@@ -247,35 +260,34 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   disabled={readonly}
                 >
                   <option value="">Seleccionar...</option>
-                  <option value="Aspirado">Aspirado</option>
-                  <option value="Turbo">Turbo</option>
-                  <option value="Supercharger">Supercharger</option>
-                  <option value="Electrico">Eléctrico</option>
-                  <option value="Hibrido">Híbrido</option>
+                  <option value="NAFTA">NAFTA</option>
+                  <option value="DIESEL">DIESEL</option>
+                  <option value="BEV">BEV</option>
+                  <option value="HEV">HEV</option>
+                  <option value="MHEV">MHEV</option>
+                  <option value="PHEV">PHEV</option>
+                  <option value="EREV">EREV</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Tipo de Vehículo Eléctrico
+                  Tipo de Vehículo Eléctrico / Híbrido
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.TipoVehiculoElectrico || ''}
                   onChange={(e) => handleChange('TipoVehiculoElectrico', e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   disabled={readonly}
-                  placeholder="Ej: BEV, PHEV, HEV"
-                  list="tipoVehiculoElectrico"
-                />
-                <datalist id="tipoVehiculoElectrico">
-                  <option value="BEV" />
-                  <option value="HEV" />
-                  <option value="PHEV" />
-                  <option value="MHEV" />
-                  <option value="EREV" />
-                  <option value="FCEV" />
-                </datalist>
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="BEV">BEV</option>
+                  <option value="EREV">EREV</option>
+                  <option value="HEV">HEV</option>
+                  <option value="MHEV">MHEV</option>
+                  <option value="PHEV">PHEV</option>
+                  <option value="N/A">N/A</option>
+                </select>
               </div>
 
               <div>
@@ -361,25 +373,17 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 <label className="block text-sm font-medium mb-1">
                   Tipo de Caja Aut. <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.TipoCajaAut || ''}
                   onChange={(e) => handleChange('TipoCajaAut', e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  placeholder="Ej: CVT"
-                  list="tiposCajaAut"
-                />
-                <datalist id="tiposCajaAut">
-                  <option value="N/A" />
-                  <option value="DCT" />
-                  <option value="DHT" />
-                  <option value="CVT" />
-                  <option value="e-CVT" />
-                  <option value="Convertidor de par" />
-                  <option value="AMT" />
-                </datalist>
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="Automática">Automática</option>
+                  <option value="Manual">Manual</option>
+                </select>
               </div>
             </div>
           </div>

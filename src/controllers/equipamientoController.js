@@ -80,7 +80,7 @@ exports.create = async (req, res) => {
 
     // Insertar columnas que existan en la base de datos
     for (const key of Object.keys(equipamiento)) {
-      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID') {
+      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion') {
         columnasToInsert.push(key);
         const val = equipamiento[key];
         if (val === null || val === undefined) {
@@ -152,7 +152,7 @@ exports.update = async (req, res) => {
 
     // Actualizar columnas que existan en la base de datos de manera individual, excluyendo IDs para evitar conflictos
     for (const key of Object.keys(equipamiento)) {
-      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID') {
+      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion' && key !== 'FechaCreacion') {
         const val = equipamiento[key];
         if (val === null || val === undefined) {
           setClauses.push(`${key} = NULL`);
