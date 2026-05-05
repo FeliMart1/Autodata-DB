@@ -1,14 +1,15 @@
 ﻿import { useState } from 'react';
 import { PageHeader } from '@components/layout/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@components/ui/Card';
 import { Button } from '@components/ui/Button';
 import { Input } from '@components/ui/Input';
 import { useToast } from '@context/ToastContext';
-import { Upload, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, Download } from 'lucide-react';
 import api from '@services/api';
 
 export function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [completeFile, setCompleteFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const { addToast } = useToast();
@@ -17,6 +18,48 @@ export function ImportPage() {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
       setResult(null);
+    }
+  };
+
+  const handleCompleteFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setCompleteFile(e.target.files[0]);
+      setResult(null);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    // Apuntamos al nuevo endpoint de descarga usando el BASE_URL para archivos
+    window.open(`${api.defaults.baseURL}/import/template-completo`, '_blank');
+  };
+
+  const handleUploadComplete = async () => {
+    if (!completeFile) {
+      addToast('Selecciona el archivo Excel Maestro', 'warning');
+      return;
+    }
+
+    setIsUploading(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append('file', completeFile);
+
+    try {
+      const response = await api.post('/import/excel-completo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setResult(response.data);
+      addToast(`Éxito: ${response.data.data.creados.modelos} modelos y ${response.data.data.creados.equipamientos} equipamientos cargados.`, 'success');
+      setCompleteFile(null);
+      
+      const fileInput = document.getElementById('excel-completo-file') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (error: any) {
+      addToast(error.response?.data?.message || 'Error al subir la Plantilla Maestra', 'error');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -54,8 +97,55 @@ export function ImportPage() {
     <div className="space-y-6">
       <PageHeader 
         title="Importación de Modelos" 
-        description="Importa un archivo Excel para cargar marcas y modelos en el sistema"
+        description="Importación Masiva desde Plantilla Maestra"
       />
+
+      {/* Nueva Tarjeta para Plantilla Completa */}
+      <Card className="border-blue-200 shadow-md">
+        <CardHeader className="bg-blue-50 border-b border-blue-100">
+          <CardTitle className="flex items-center gap-2 text-blue-800">
+            <CheckCircle2 className="h-6 w-6 text-blue-600" />
+            Importación Definitiva (Maestro Completo)
+          </CardTitle>
+          <CardDescription className="text-blue-700">
+            Utiliza este método para cargar todo el equipamiento, marca, modelo y precio desde una única planilla.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center p-4 bg-muted border rounded-lg">
+            <span className="text-sm flex-1 text-muted-foreground">
+              <strong>Paso 1:</strong> Descargá la plantilla lista para completar. Viene con una pestaña de instrucciones.
+            </span>
+            <Button onClick={handleDownloadTemplate} variant="outline" className="shrink-0 gap-2">
+              <Download className="h-4 w-4" />
+              Descargar Plantilla Vacía
+            </Button>
+          </div>
+
+          <div className="grid gap-4 md:flex items-end">
+            <div className="flex-1 space-y-2">
+              <label htmlFor="excel-completo-file" className="text-sm font-medium leading-none">
+                <strong>Paso 2:</strong> Subir Plantilla Principal Completa
+              </label>
+              <Input
+                id="excel-completo-file"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleCompleteFileChange}
+                disabled={isUploading}
+              />
+            </div>
+            <Button
+              onClick={handleUploadComplete}
+              disabled={!completeFile || isUploading}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              {isUploading ? 'Procesando...' : 'Cargar Vehículos Completos'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

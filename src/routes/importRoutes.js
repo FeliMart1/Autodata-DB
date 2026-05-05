@@ -5,11 +5,19 @@ const {
   importarCSV,
   importarExcelAutos,
   importarExcelPrecios,
+  importarExcelCompleto,
+  descargarTemplateCompleto,
   listarBatches,
   obtenerBatch,
   procesarBatch,
   eliminarBatch
 } = require('../controllers/importController');
+
+// GET /api/import/template-completo - Descarga el excel base para los autos y equipamientos
+router.get('/template-completo', descargarTemplateCompleto);
+
+// POST /api/import/excel-completo - Sube la plantilla maestra con los datos del equipamiento
+router.post('/excel-completo', upload.single('file'), importarExcelCompleto);
 
 // POST /api/import/excel-modelos - Subir Excel respetando IDs originales
 router.post('/excel-modelos', upload.single('file'), importarExcelAutos);
