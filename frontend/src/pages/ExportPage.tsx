@@ -38,6 +38,8 @@ export function ExportPage() {
         endpoint = `/api/export/ventas?anio=${anio}&mes=${mes}`;
       } else if (tipoExport === 'empadronamientos') {
         endpoint = `/api/export/empadronamientos?anio=${anio}&mes=${mes}`;
+      } else if (tipoExport === 'plantilla') {
+        endpoint = `/api/export/plantilla`;
       } else if (tipoExport === 'definitivos') {
         addToast('Export de definitivos en desarrollo...', 'info');
         setIsExporting(false);
@@ -65,7 +67,7 @@ export function ExportPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${tipoExport === 'ventas' ? 'Ventas' : 'Empadronamientos'}_${anio}_${mes}.xlsx`;
+      a.download = tipoExport === 'plantilla' ? 'Autodata_Plantilla_Maestra.xlsx' : `${tipoExport === 'ventas' ? 'Ventas' : 'Empadronamientos'}_${anio}_${mes}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -95,7 +97,7 @@ export function ExportPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Exportación
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <button
                   type="button"
                   onClick={() => setTipoExport('ventas')}
@@ -106,7 +108,7 @@ export function ExportPage() {
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
-                  <span className="font-medium text-sm">Ventas</span>
+                  <span className="font-medium text-sm text-center">Ventas</span>
                 </button>
                 <button
                   type="button"
@@ -118,7 +120,19 @@ export function ExportPage() {
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
-                  <span className="font-medium text-sm">Empadronamientos</span>
+                  <span className="font-medium text-sm text-center">Empadronamientos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoExport('plantilla')}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                    tipoExport === 'plantilla'
+                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <FileSpreadsheet className="h-6 w-6 mb-2" />
+                  <span className="font-medium text-sm text-center">Plantilla Maestra</span>
                 </button>
                 <button
                   type="button"
@@ -130,19 +144,20 @@ export function ExportPage() {
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
-                  <span className="font-medium text-sm">Próximamente...</span>
+                  <span className="font-medium text-sm text-center">Próximamente...</span>
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4" />
-                    Mes
-                  </div>
-                </label>
+            {tipoExport !== 'plantilla' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4" />
+                      Mes
+                    </div>
+                  </label>
                 <select
                   value={mes}
                   onChange={(e) => setMes(Number(e.target.value))}
@@ -169,6 +184,7 @@ export function ExportPage() {
                 </select>
               </div>
             </div>
+            )}
 
           </div>
         </div>

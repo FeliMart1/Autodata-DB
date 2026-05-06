@@ -4,5 +4,6 @@ const exportController = require('../controllers/exportController');
 
 router.get('/ventas', exportController.exportarVentasExcel);
 router.get('/empadronamientos', exportController.exportarEmpadronamientosExcel);
+router.get('/plantilla', exportController.exportarPlantillaMaestra);
 
 module.exports = router;
