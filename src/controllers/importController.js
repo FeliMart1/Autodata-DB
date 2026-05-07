@@ -334,27 +334,55 @@ const procesarBatch = async (req, res) => {
         }
 
         // 2. Crear/actualizar modelo
+        // Build modeloData mapping minimal fields from the staged row. Use flexible header names present in CSV.
+        // We'll set Estado to 'definitivo' by default per requested workflow and look up the EstadoID from DB.
+        const estadoDefinitivo = 'definitivo';
+        let estadoIdDefinitivo = 1; // fallback if lookup fails
+        try {
+          const estadoRow = await db.queryWithParams("SELECT EstadoID FROM ModeloEstado WHERE LOWER(NombreEstado) = LOWER(@p0)", [estadoDefinitivo]);
+          if (estadoRow && estadoRow.length > 0) estadoIdDefinitivo = estadoRow[0].EstadoID;
+        } catch (e) {
+          logger.warn('No se pudo obtener EstadoID definitivo, usando 1 como fallback', e.message);
+        }
+
         const modeloData = {
           MarcaID: marcaId,
-          CodigoModelo: `${reg.marca.substring(0, 3).toUpperCase()}-${reg.modelo.substring(0, 10).toUpperCase()}`,
+          CodigoModelo: `${reg.marca.substring(0, 3).toUpperCase()}-${String(reg.modelo || '').substring(0, 10).toUpperCase()}`,
           DescripcionModelo: reg.modelo,
-          Familia: reg.modelo,
-          OrigenCodigo: reg.origen,
-          CombustibleCodigo: reg.combustible,
+          Familia: reg.familia || reg.modelo,
+          OrigenCodigo: reg.origen || reg.Origen || null,
+          CombustibleCodigo: reg.combustible || reg.Combustible || null,
           Anio: reg.anio ? parseInt(reg.anio) : null,
-          Tipo: reg.tipo,
-          CategoriaCodigo: reg.categoria,
-          SegmentacionAutodata: reg.segmento,
-          CC: reg.cc ? parseInt(reg.cc) : null,
-          HP: reg.hp ? parseFloat(reg.hp) : null,
-          Traccion: reg.traccion,
-          Caja: reg.caja,
-          Turbo: reg.turbo === 'Si' || reg.turbo === '1' || reg.turbo === 'true',
-          Puertas: reg.puertas ? parseInt(reg.puertas) : null,
-          Pasajeros: reg.pasajeros ? parseInt(reg.pasajeros) : null,
-          Estado: 'importado',
-          EstadoID: 1 // IMPORTADO
+          Tipo: reg.tipo || reg.Tipo || null,
+          CategoriaCodigo: reg.categoria || reg.Categoria || null,
+          SegmentacionAutodata: reg.segmento || reg.Segmento || null,
+          CC: reg.cc ? parseInt(String(reg.cc).replace(',', '.')) : (reg.CC ? parseInt(String(reg.CC).replace(',', '.')) : null),
+          HP: reg.hp ? parseFloat(String(reg.hp).replace(',', '.')) : (reg.HP ? parseFloat(String(reg.HP).replace(',', '.')) : null),
+          Traccion: reg.traccion || reg.Traccion || null,
+          Caja: reg.caja || reg.Caja || null,
+          Turbo: (String(reg.turbo || reg.Turbo || '').toLowerCase() === 'si' || String(reg.turbo || reg.Turbo || '') === '1'),
+          Puertas: reg.puertas ? parseInt(reg.puertas) : (reg.Puertas ? parseInt(reg.Puertas) : null),
+          Pasajeros: reg.pasajeros ? parseInt(reg.pasajeros) : (reg.Pasajeros ? parseInt(reg.Pasajeros) : null),
+          Importador: reg.importador || reg.Importador || null,
+          CodigoAutodata: reg.codigoautodata || reg.CodigoAutodata || null,
+          Origen: reg.origen || null,
+          Estado: estadoDefinitivo,
+          EstadoID: estadoIdDefinitivo
         };
+
+        // Ensure CodigoAutodata does not exceed DB length: try to query COLUMN property length if possible
+        try {
+          if (modeloData.CodigoAutodata) {
+            const col = await db.queryRaw("SELECT CHARACTER_MAXIMUM_LENGTH as len FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Modelo' AND COLUMN_NAME = 'CodigoAutodata'");
+            const maxLen = col && col[0] && col[0].len ? parseInt(col[0].len) : null;
+            if (maxLen && String(modeloData.CodigoAutodata).length > maxLen) {
+              logger.warn('CodigoAutodata demasiado largo, truncando', { value: modeloData.CodigoAutodata, maxLen });
+              modeloData.CodigoAutodata = String(modeloData.CodigoAutodata).substring(0, maxLen);
+            }
+          }
+          } catch (e) {
+            logger.warn('No se pudo verificar longitud de CodigoAutodata', e.message);
+          }
 
         const nuevoModelo = await db.insert('Modelo', modeloData);
         const modeloId = nuevoModelo.ModeloID;
@@ -694,7 +722,7 @@ const importarExcelCompleto = async (req, res) => {
           let val = row[colName];
           if (typeof val === 'string' && (val.trim() === 'N/A' || val.trim() === 'S/D' || val.trim() === '')) {
             val = null;
-          } else if (val === true || val === 'Si' || val === 'Sí' || val === 'SI' || val === '1' || val === 1 || val === 'ISOFIX') {
+          } else if (val === true || val === 'Si' || val === 'Sí' || val === 'SI' || val === '1' || val === 1) {
             val = 1;
           } else if (val === false || val === 'No' || val === 'NO' || val === '0' || val === 0) {
             val = 0;
@@ -703,7 +731,20 @@ const importarExcelCompleto = async (req, res) => {
             const colInfo = (global.equipColsInfo || []).find(c => c.name === colName);
             if (colInfo) {
               if (colInfo.type.includes('bit')) {
-                val = 1; // if it's a bit column and has some text, we assume true
+                // Special handling for common textual tokens in bit fields
+                const vLower = val.toLowerCase();
+                if (vLower.includes('isofix') || vLower.includes('si') || vLower === 'true' || vLower === '1') {
+                  val = 1;
+                } else if (vLower.includes('no') || vLower === '0' || vLower === 'false') {
+                  val = 0;
+                } else {
+                  // For unknown text, keep null to avoid incorrect true values, except for specific columns where text means presence
+                  if (/isofix|iso-fix|isofix/i.test(val) || /cuero|piel|leather/i.test(val)) {
+                    val = 1;
+                  } else {
+                    val = null;
+                  }
+                }
               } else if (colInfo.type.includes('int') || colInfo.type.includes('decimal') || colInfo.type.includes('numeric')) {
                 const parsed = parseFloat(val.replace(',', '.'));
                 val = isNaN(parsed) ? null : parsed;
@@ -712,6 +753,25 @@ const importarExcelCompleto = async (req, res) => {
           }
           if (val !== undefined) {
              updateObj[colName] = val;
+          }
+        }
+      }
+
+      // Derive Puertas from common equipamiento fields if Modelo.Puertas is missing
+      if ((!row['Puertas'] && !row['puertas']) && !((await db.queryRaw(`SELECT Puertas FROM Modelo WHERE ModeloID = ${modeloIdDb}`))[0]?.Puertas)) {
+        // look for equip keys that may indicate doors (e.g., '4 puertas', '5 puertas')
+        const puertaKeys = ['Puertas', 'puertas', 'NumPuertas', 'NumeroPuertas', 'Doors'];
+        for (const k of puertaKeys) {
+          if (row[k]) {
+            const p = parseInt(String(row[k]).replace(/[^^\d]/g, ''));
+            if (!isNaN(p) && p > 0) {
+              try {
+                await execWithDebug(`UPDATE Modelo SET Puertas = @p0 WHERE ModeloID = @p1`, [p, modeloIdDb]);
+                break;
+              } catch (e) {
+                logger.warn('No se pudo actualizar Puertas desde equipamiento', e.message);
+              }
+            }
           }
         }
       }
