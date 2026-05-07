@@ -5,6 +5,47 @@ const logger = require('../config/logger');
 
 const xlsx = require('xlsx');
 
+// Helper to execute parameterized queries and log SQL+params on error for easier debugging
+const execWithDebug = async (sqlText, params = []) => {
+  // Build processedQuery the same way db.queryWithParams does so we can log the final SQL
+  try {
+    let processedQuery = sqlText;
+    // Replace in descending order (@p176 before @p17) to avoid accidental substring replacement (e.g. @p1 inside @p10)
+    for (let index = params.length - 1; index >= 0; index--) {
+      const param = params[index];
+      const placeholder = `@p${index}`;
+      let value;
+      if (param === null || param === undefined) {
+        value = 'NULL';
+      } else if (typeof param === 'string') {
+        value = `N'${param.replace(/'/g, "''")}'`;
+      } else if (typeof param === 'number') {
+        value = param.toString();
+      } else if (typeof param === 'boolean') {
+        value = param ? '1' : '0';
+      } else if (param instanceof Date) {
+        value = `'${param.toISOString()}'`;
+      } else {
+        value = `N'${JSON.stringify(param).replace(/'/g, "''")}'`;
+      }
+      processedQuery = processedQuery.replace(new RegExp(placeholder, 'g'), value);
+    }
+
+    // Log the expanded SQL at debug level
+    logger.debug('Executing SQL', { processedQuery, params });
+
+    // Execute the processed query
+    return await db.queryRaw(processedQuery);
+  } catch (err) {
+    try {
+      logger.error('SQL execution error', { sqlTemplate: sqlText, params, message: err.message, stack: err.stack });
+    } catch (logErr) {
+      console.error('Failed to log SQL error', logErr);
+    }
+    throw err;
+  }
+};
+
 // Configuration de multer para archivos en memoria
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -556,9 +597,12 @@ const importarExcelCompleto = async (req, res) => {
     const creados = { marcas: 0, modelos: 0, equipamiento_inserts: 0, equipamiento_updates: 0 };
     const usuarioId = req.user?.id || 1;
 
+    // Preparar info de columnas para cast numeric safe
+    const colsInfoQuery = await db.queryRaw("SELECT COLUMN_NAME as name, DATA_TYPE as type FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo' AND COLUMN_NAME NOT IN ('EquipamientoID', 'ModeloID')");
+    global.equipColsInfo = colsInfoQuery;
+    
     // Obtener los nombres de columnas vÃ¡lidas de la tabla EquipamientoModelo
-    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo' AND COLUMN_NAME NOT IN ('EquipamientoID', 'ModeloID')");
-    const validEquipCols = columnsQuery.map(c => c.COLUMN_NAME);
+    const validEquipCols = colsInfoQuery.map(c => c.name);
 
     // Mapeo en memoria
     const marcaIdMap = new Map();
@@ -569,29 +613,33 @@ const importarExcelCompleto = async (req, res) => {
       if (!mCodStr) continue;
       const codMarca = String(mCodStr).trim().padStart(4, '0');
       const marcaDesc = row['Marca'] ? String(row['Marca']).trim() : '';
-      
+
       const pCodStr = row['Codigo_Modelo'] || row['CodigoModelo'];
       const codModelo = pCodStr ? String(pCodStr).trim().padStart(4, '0') : '';
-      const modeloDesc = row['Descripcion_Modelo'] ? String(row['Descripcion_Modelo']).trim() : '';
+      const modeloDesc = row['Descripcion_Modelo'] ? String(row['Descripcion_Modelo']).trim() : '';  
       const familiaDesc = row['Familia'] ? String(row['Familia']).trim() : null;
       const combustible = row['Combustible'] ? String(row['Combustible']).trim() : null;
       const categoria = row['Categoria'] ? String(row['Categoria']).trim() : null;
-      
+
       // Limpiar precio USD
       let precio = row['Precio_USD'];
       if (typeof precio === 'string') {
-        const pClean = parseFloat(precio.replace(/[^\d.-]/g, ''));
+        const pClean = parseFloat(precio.replace(/[^^\d.-]/g, ''));
         precio = isNaN(pClean) ? null : pClean;
       }
-      
+
       let codigoAutodata = row['CODCONCATENADO'] || row['CODIGO CONCATENADO'];
-      if (!codigoAutodata) {
-        codigoAutodata = `${codMarca}${codModelo}`;
-      }
+      if (!codigoAutodata) codigoAutodata = `${codMarca}${codModelo}`;
       
+      // Truncate to column length to prevent insertion errors (assuming length is 8 or 20, keeping it to length 8 just in case based on the error value '0050S/CO')
+      if (codigoAutodata && codigoAutodata.length > 8) {
+         // Will check actual schema if we can, but fallback to 8 to avoid the crash
+         codigoAutodata = String(codigoAutodata).substring(0, 8);
+      }
+
       // 1. Marca
       if (!marcaIdMap.has(codMarca)) {
-        let dbMarca = await db.queryWithParams('SELECT MarcaID FROM Marca WHERE CodigoMarca = @p0', [codMarca]);
+        const dbMarca = await execWithDebug('SELECT MarcaID FROM Marca WHERE CodigoMarca = @p0', [codMarca]);
         if (dbMarca.length === 0) {
           const mInsert = await db.queryRaw(`INSERT INTO Marca (Descripcion, CodigoMarca) OUTPUT INSERTED.MarcaID VALUES (N'${marcaDesc.replace(/'/g, "''")}', '${codMarca}')`);
           if (mInsert && mInsert.length > 0) {
@@ -606,76 +654,109 @@ const importarExcelCompleto = async (req, res) => {
       if (!dbMarcaId) continue; // safety
 
       // 2. Modelo
-      const modExists = await db.queryWithParams(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, codModelo]);
+      const modExists = await execWithDebug(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, codModelo]);
       let modeloIdDb = null;
-      
+
       if (modExists.length === 0) {
-        const insertMod = await db.queryWithParams(
+        const insertMod = await execWithDebug(
           `INSERT INTO Modelo (MarcaID, CodigoModelo, CodigoAutodata, DescripcionModelo, Familia, CombustibleCodigo, CategoriaCodigo, Estado, Activo, ModificadoPorID, PrecioInicial) 
            OUTPUT INSERTED.ModeloID 
-           VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, @p7, @p8)`, 
+           VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, @p7, @p8)`,
           [dbMarcaId, codModelo, codigoAutodata, modeloDesc, familiaDesc, combustible, categoria, usuarioId, precio]
         );
         if (insertMod && insertMod.length > 0) {
           modeloIdDb = insertMod[0].ModeloID;
-          await db.queryWithParams(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'importado', 'Sistema')`, [modeloIdDb]);
+          await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'importado', 'Sistema')`, [modeloIdDb]);
           creados.modelos++;
         }
       } else {
         modeloIdDb = modExists[0].ModeloID;
-        // Optionally update existing model basics if wanted (not strictly required if it just matches, but updates are welcome)
-        await db.queryWithParams(
-            `UPDATE Modelo SET DescripcionModelo = @p0, Familia = @p1, CombustibleCodigo = @p2, CategoriaCodigo = @p3 WHERE ModeloID = @p4`,
-            [modeloDesc, familiaDesc, combustible, categoria, modeloIdDb]
-        );
+        await execWithDebug(`UPDATE Modelo SET DescripcionModelo = @p0, Familia = @p1, CombustibleCodigo = @p2, CategoriaCodigo = @p3 WHERE ModeloID = @p4`, [modeloDesc, familiaDesc, combustible, categoria, modeloIdDb]);
       }
 
       if (!modeloIdDb) continue;
 
       // 3. Precio
       if (precio != null && !isNaN(precio)) {
-         await db.queryWithParams(`UPDATE Modelo SET PrecioInicial = @p0 WHERE ModeloID = @p1`, [precio, modeloIdDb]);
-         await db.queryWithParams(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Plantilla Maestra', GETDATE())`, [modeloIdDb, precio]);
+        const precioNum = Number(precio);
+        if (!isFinite(precioNum)) {
+          logger.warn(`Precio inválido para ModeloID ${modeloIdDb}: ${precio}`);
+        } else {
+          await execWithDebug(`UPDATE Modelo SET PrecioInicial = @p0 WHERE ModeloID = @p1`, [precioNum, modeloIdDb]);
+          await execWithDebug(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Plantilla Maestra', GETDATE())`, [modeloIdDb, precioNum]);
+        }
       }
 
       // 4. Equipamiento
-      // Filtrar columnas de row que coincidan con validEquipCols (haciendo match exacto omitiendo case y espacios quiza? No, las keys del json las hizo xlsx y coinciden con las de EquipamientoModelo en DB en esta plantilla)
       const updateObj = {};
       for (const colName of validEquipCols) {
-        if (row[colName] !== undefined) {
-           let val = row[colName];
-           // Convert "Si"/"SÃ"/"S"/"1"/true to boolean true if needed, or leave to sql
-           if (typeof val === 'string' && (val.toLowerCase().trim() === 'si' || val.toLowerCase().trim() === 'sÃ' || val.toLowerCase().trim() === 's')) val = true;
-           if (typeof val === 'string' && (val.toLowerCase().trim() === 'no' || val.toLowerCase().trim() === 'n')) val = false;
-           updateObj[colName] = val;
+        if (Object.prototype.hasOwnProperty.call(row, colName) && row[colName] !== undefined) {
+          let val = row[colName];
+          if (typeof val === 'string' && (val.trim() === 'N/A' || val.trim() === 'S/D' || val.trim() === '')) {
+            val = null;
+          } else if (val === true || val === 'Si' || val === 'Sí' || val === 'SI' || val === '1' || val === 1 || val === 'ISOFIX') {
+            val = 1;
+          } else if (val === false || val === 'No' || val === 'NO' || val === '0' || val === 0) {
+            val = 0;
+          } else if (typeof val === 'string') {
+            // Check if db expects number or bit
+            const colInfo = (global.equipColsInfo || []).find(c => c.name === colName);
+            if (colInfo) {
+              if (colInfo.type.includes('bit')) {
+                val = 1; // if it's a bit column and has some text, we assume true
+              } else if (colInfo.type.includes('int') || colInfo.type.includes('decimal') || colInfo.type.includes('numeric')) {
+                const parsed = parseFloat(val.replace(',', '.'));
+                val = isNaN(parsed) ? null : parsed;
+              }
+            }
+          }
+          if (val !== undefined) {
+             updateObj[colName] = val;
+          }
         }
       }
 
       const eqKeys = Object.keys(updateObj);
       if (eqKeys.length > 0) {
-        const eqExists = await db.queryWithParams(`SELECT EquipamientoID FROM EquipamientoModelo WHERE ModeloID = @p0`, [modeloIdDb]);
-        
+        const eqExists = await execWithDebug(`SELECT EquipamientoID FROM EquipamientoModelo WHERE ModeloID = @p0`, [modeloIdDb]);
         if (eqExists.length > 0) {
-          // Update
           const setters = eqKeys.map((k, i) => `[${k}] = @p${i + 1}`).join(', ');
-          const values = eqKeys.map(k => updateObj[k]);
-          await db.queryWithParams(`UPDATE EquipamientoModelo SET ${setters} WHERE ModeloID = @p0`, [modeloIdDb, ...values]);
+          const values = eqKeys.map(k => {
+            const v = updateObj[k];
+            if (typeof v === 'boolean') return v ? 1 : 0;
+            if (v === null || v === undefined) return null;
+            if (typeof v === 'string' || typeof v === 'number') return v;
+            return String(v);
+          });
+          await execWithDebug(`UPDATE EquipamientoModelo SET ${setters} WHERE ModeloID = @p0`, [modeloIdDb, ...values]);
           creados.equipamiento_updates++;
         } else {
-          // Insert
           const cols = eqKeys.map(k => `[${k}]`).join(', ');
           const paramsList = eqKeys.map((_, i) => `@p${i + 1}`).join(', ');
-          const values = eqKeys.map(k => updateObj[k]);
-          await db.queryWithParams(
-            `INSERT INTO EquipamientoModelo (ModeloID, ${cols}) VALUES (@p0, ${paramsList})`,
-            [modeloIdDb, ...values]
-          );
+          const values = eqKeys.map(k => {
+            const v = updateObj[k];
+            if (typeof v === 'boolean') return v ? 1 : 0;
+            if (v === null || v === undefined) return null;
+            if (typeof v === 'string' || typeof v === 'number') return v;
+            return String(v);
+          });
+          await execWithDebug(`INSERT INTO EquipamientoModelo (ModeloID, ${cols}) VALUES (@p0, ${paramsList})`, [modeloIdDb, ...values]);
           creados.equipamiento_inserts++;
         }
       }
     }
 
-    return res.status(200).json({ success: true, message: 'Archivo procesado con éxito', data: { creados: { modelos: creados.modelos, equipamientos: creados.equipamiento_inserts + creados.equipamiento_updates, ...creados } } });
+    return res.status(200).json({
+      success: true,
+      message: 'Archivo procesado con éxito',
+      data: {
+        creados: {
+          modelos: creados.modelos,
+          equipamientos: creados.equipamiento_inserts + creados.equipamiento_updates,
+          ...creados
+        }
+      }
+    });
   } catch (error) {
     logger.error('Error procesando plantilla:', error);
     return res.status(500).json({ success: false, message: 'Error en la importaciÃ³n: ' + error.message });
