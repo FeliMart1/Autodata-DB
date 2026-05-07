@@ -92,3 +92,63 @@ exports.exportarEmpadronamientosExcel = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error interno exportando datos', error: error.message });
   }
 };
+
+exports.exportarPlantillaMaestra = async (req, res) => {
+  try {
+    // Obtener los nombres de columnas válidas de la tabla EquipamientoModelo
+    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo' AND COLUMN_NAME NOT IN ('EquipamientoID', 'ModeloID')");
+    const validEquipCols = columnsQuery.map(c => c.COLUMN_NAME);
+
+    let equipSelect = validEquipCols.map(c => `e.[${c}]`).join(', ');
+    if (equipSelect) equipSelect = ', ' + equipSelect;
+
+    const query = `
+      SELECT 
+        ma.CodigoMarca AS [Codigo_Marca],
+        ma.Descripcion AS [Marca],
+        mo.CodigoModelo AS [Codigo_Modelo],
+        mo.DescripcionModelo AS [Descripcion_Modelo],
+        mo.Familia AS [Familia],
+        mo.CombustibleCodigo AS [Combustible],
+        mo.CategoriaCodigo AS [Categoria],
+        mo.PrecioInicial AS [Precio_USD],
+        mo.CodigoAutodata AS [CODCONCATENADO]
+        ${equipSelect}
+      FROM Modelo mo
+      INNER JOIN Marca ma ON mo.MarcaID = ma.MarcaID
+      LEFT JOIN EquipamientoModelo e ON mo.ModeloID = e.ModeloID
+      WHERE mo.Activo = 1
+      ORDER BY ma.Descripcion, mo.DescripcionModelo
+    `;
+
+    const datos = await db.queryRaw(query);
+
+    if (!datos || datos.length === 0) {
+      return res.status(404).json({ success: false, message: 'No se encontraron modelos para exportar' });
+    }
+
+    // Formatear booleanos a Si/No para mayor claridad en el Excel (opcional)
+    const formattedData = datos.map(row => {
+      const formattedRow = { ...row };
+      validEquipCols.forEach(col => {
+        if (formattedRow[col] === true) formattedRow[col] = 'Si';
+        else if (formattedRow[col] === false) formattedRow[col] = 'No';
+      });
+      return formattedRow;
+    });
+
+    const wb = xl.utils.book_new();
+    const ws = xl.utils.json_to_sheet(formattedData);
+    xl.utils.book_append_sheet(wb, ws, 'Plantilla Maestra');
+
+    const buffer = xl.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', `attachment; filename=Autodata_Plantilla_Maestra.xlsx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.status(200).send(buffer);
+
+  } catch (error) {
+    logger.error('Error exportando plantilla maestra:', error);
+    res.status(500).json({ success: false, message: 'Error interno exportando datos', error: error.message });
+  }
+};
