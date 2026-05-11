@@ -6,19 +6,31 @@ exports.getByModeloId = async (req, res) => {
   try {
     const { modeloId } = req.params;
 
+    // Get all columns of the EquipamientoModelo table
+    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo'");
+    
+    // Get actual data
     const query = `
       SELECT * FROM EquipamientoModelo
       WHERE ModeloID = ${modeloId}
     `;
 
     const equipamiento = await db.queryRaw(query);
-    let data = equipamiento[0] || null;
+    let dbData = equipamiento[0] || {};
     
-    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos y mezclamos
-    if (data && data.OtrosDatos) {
+    // Auto-fill an empty object with all schema columns mapping them to null/false so the frontend knows they exist even if empty
+    let data = {};
+    columnsQuery.forEach(col => {
+      // Default to null or false depending on bit type
+      const defaultVal = col.DATA_TYPE === 'bit' ? false : null;
+      data[col.COLUMN_NAME] = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
+    });
+
+    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos y mezclamos        
+    if (data && data.OtrosDatos && typeof data.OtrosDatos === 'string') {
       try {
         const extraData = JSON.parse(data.OtrosDatos);
-        data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad
+        data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad 
       } catch (e) {
         logger.error('Error parseando OtrosDatos en equipamiento:', e);
       }
