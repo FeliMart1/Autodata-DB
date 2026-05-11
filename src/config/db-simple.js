@@ -34,7 +34,7 @@ const db = {
         // Escapar comillas simples
         value = `N'${param.replace(/'/g, "''")}'`;
       } else if (typeof param === 'number') {
-        value = param.toString();
+        value = Number.isFinite(param) ? param.toString() : 'NULL';
       } else if (typeof param === 'boolean') {
         value = param ? '1' : '0';
       } else if (param instanceof Date) {
@@ -64,7 +64,7 @@ const db = {
         // Escapar comillas simples
         value = `N'${param.replace(/'/g, "''")}'`;
       } else if (typeof param === 'number') {
-        value = param.toString();
+        value = Number.isFinite(param) ? param.toString() : 'NULL';
       } else if (typeof param === 'boolean') {
         value = param ? '1' : '0';
       } else if (param instanceof Date) {
