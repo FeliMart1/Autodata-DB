@@ -35,7 +35,7 @@ const execWithDebug = async (sqlText, params = []) => {
       } else if (typeof param === 'string') {
         value = `N'${param.replace(/'/g, "''")}'`;
       } else if (typeof param === 'number') {
-        value = param.toString();
+        value = Number.isFinite(param) ? param.toString() : 'NULL';
       } else if (typeof param === 'boolean') {
         value = param ? '1' : '0';
       } else if (param instanceof Date) {
@@ -516,7 +516,10 @@ const importarExcelAutos = async (req, res) => {
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r || r.length === 0 || r[cols.marcod] == null) continue;
-      modelosArray.push({ codMarca: String(r[cols.marcod]).trim().padStart(4, '0'), marcaDesc: r[cols.mardsc] ? String(r[cols.mardsc]).trim() : '', codModelo: String(r[cols.marmodcod]).trim().padStart(4, '0'), modeloDesc: r[cols.marmoddsc] ? String(r[cols.marmoddsc]).trim() : '', familiaDesc: cols.famdsc !== -1 && r[cols.famdsc] ? String(r[cols.famdsc]).trim() : null, combustible: cols.combdsc !== -1 && r[cols.combdsc] ? String(r[cols.combdsc]).trim() : null, categoria: cols.catdsc !== -1 && r[cols.catdsc] ? String(r[cols.catdsc]).trim() : null, precio: cols.maevalor !== -1 && r[cols.maevalor] ? parseFloat(r[cols.maevalor]) : null });
+      const codMarcaDigits = String(r[cols.marcod]).replace(/\D+/g, '').trim();
+      const codModeloDigits = String(r[cols.marmodcod]).replace(/\D+/g, '').trim();
+      if (!codMarcaDigits || !codModeloDigits) continue;
+      modelosArray.push({ codMarca: codMarcaDigits.padStart(4, '0').slice(-4), marcaDesc: r[cols.mardsc] ? String(r[cols.mardsc]).trim() : '', codModelo: codModeloDigits.padStart(4, '0').slice(-4), modeloDesc: r[cols.marmoddsc] ? String(r[cols.marmoddsc]).trim() : '', familiaDesc: cols.famdsc !== -1 && r[cols.famdsc] ? String(r[cols.famdsc]).trim() : null, combustible: cols.combdsc !== -1 && r[cols.combdsc] ? String(r[cols.combdsc]).trim() : null, categoria: cols.catdsc !== -1 && r[cols.catdsc] ? String(r[cols.catdsc]).trim() : null, precio: cols.maevalor !== -1 && r[cols.maevalor] ? parseFloat(r[cols.maevalor]) : null });
     }
 
     const usuarioId = req.user ? req.user.UsuarioID || req.user.id || 1 : 1;
@@ -525,7 +528,8 @@ const importarExcelAutos = async (req, res) => {
     for (const mod of modelosArray) {
       if (!marcaIdMap.has(mod.codMarca)) {
          const marcaIdInt = parseInt(mod.codMarca, 10);
-         let dbMarca = await db.queryWithParams('SELECT MarcaID FROM Marca WHERE CodigoMarca = @p0 OR MarcaID = @p1', [mod.codMarca, marcaIdInt]);
+         if (Number.isNaN(marcaIdInt)) continue;
+           let dbMarca = await db.queryWithParams('SELECT MarcaID FROM Marca WHERE CodigoMarca = @p0', [mod.codMarca]);
          if (dbMarca.length === 0) {
            try {
              await db.queryRaw(`SET IDENTITY_INSERT Marca ON;`);
@@ -646,8 +650,7 @@ const importarExcelCompleto = async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
 
-    const creados = { marcas: 0, modelos: 0, equipamiento_inserts: 0, equipamiento_updates: 0, precios: 0 };
-    const usuarioId = req.user?.id || req.user?.UsuarioID || 1;
+    const creados = { modelos: 0, familias: 0, equipamiento_inserts: 0, equipamiento_updates: 0, precios: 0, omitidos_marca: 0 };
 
     // Discover Equipment columns & types dynamically
     const colsInfoQuery = await db.queryRaw("SELECT COLUMN_NAME as name, DATA_TYPE as type FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo' AND COLUMN_NAME NOT IN ('EquipamientoID', 'ModeloID')");
@@ -661,17 +664,23 @@ const importarExcelCompleto = async (req, res) => {
     }));
 
     const marcaIdMap = new Map();
+    const familiaIdMap = new Map();
 
     for (const row of data) {
       // Normalize row keys for alias mapping
       const normRow = {};
       for (const key in row) normRow[normalizeKey(key)] = row[key];
 
-      const codMarca = String(normRow['codigomarca'] || row['Codigo_Marca'] || '').trim().padStart(4, '0');
-      if (!codMarca) continue;
+      const codMarcaRaw = normRow['codigomarca'] || normRow['codmarca'] || row['Codigo_Marca'] || row['Codigo Marca'] || '';
+      const codMarcaDigits = String(codMarcaRaw).replace(/\D+/g, '').trim();
+      if (!codMarcaDigits) continue;
+      const codMarca = codMarcaDigits.padStart(4, '0').slice(-4);
       const marcaDesc = String(normRow['marca'] || row['Marca'] || '').trim();
 
-      const codModelo = String(normRow['codigomodelo'] || row['Codigo_Modelo'] || '').trim().padStart(4, '0');
+      const codModeloRaw = normRow['codigomodelo'] || normRow['codmodelo'] || row['Codigo_Modelo'] || row['Codigo Modelo'] || '';
+      const codModeloDigits = String(codModeloRaw).replace(/\D+/g, '').trim();
+      if (!codModeloDigits) continue;
+      const codModelo = codModeloDigits.padStart(4, '0').slice(-4);
       const modeloDesc = String(normRow['descripcionmodelo'] || row['Descripcion_Modelo'] || '').trim();  
       const familiaDesc = normRow['familia'] ? String(normRow['familia']).trim() : null;
       
@@ -682,32 +691,57 @@ const importarExcelCompleto = async (req, res) => {
       if (!codigoAutodata) codigoAutodata = `${codMarca}${codModelo}`;
       if (codigoAutodata.length > 8) codigoAutodata = codigoAutodata.substring(0, 8); // truncate to preserve schema
 
-      // 1. Marca Upsert with IDENTITY_INSERT fallback logic
+      // 1. Marca lookup only: no crear/editar marcas desde import maestro
       if (!marcaIdMap.has(codMarca)) {
         const marcaIdInt = parseInt(codMarca, 10);
-        let marcaExists = await execWithDebug(`SELECT MarcaID FROM Marca WHERE CodigoMarca = @p0 OR MarcaID = @p1`, [codMarca, marcaIdInt]);
-        
+        if (Number.isNaN(marcaIdInt)) continue;
+          let marcaExists = await execWithDebug(`SELECT TOP 1 MarcaID FROM Marca WHERE CodigoMarca = @p0`, [codMarca]);
+
+        if (marcaExists.length === 0 && marcaDesc) {
+          marcaExists = await execWithDebug(
+            `SELECT TOP 1 MarcaID FROM Marca WHERE LTRIM(RTRIM(Descripcion)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(@p0)) COLLATE Latin1_General_CI_AI`,
+            [marcaDesc]
+          );
+        }
+
         if (marcaExists.length === 0) {
-          try {
-              // Note the column is "Descripcion" in your DB, not "Nombre"
-              await execWithDebug(`SET IDENTITY_INSERT Marca ON; INSERT INTO Marca (MarcaID, Descripcion, CodigoMarca) VALUES (@p0, @p1, @p2); SET IDENTITY_INSERT Marca OFF;`, [marcaIdInt, marcaDesc, codMarca]);
-              marcaIdMap.set(codMarca, marcaIdInt);
-              creados.marcas++;
-            } catch (e) {
-              // Fallback if IDENTITY_INSERT fails
-              await execWithDebug(`SET IDENTITY_INSERT Marca OFF; INSERT INTO Marca (Descripcion, CodigoMarca) VALUES (@p0, @p1)`, [marcaDesc, codMarca]);
-              const newMarca = await execWithDebug(`SELECT MarcaID FROM Marca WHERE CodigoMarca = @p0`, [codMarca]);
-              marcaIdMap.set(codMarca, newMarca[0].MarcaID);
-              creados.marcas++;
-            }
+          creados.omitidos_marca++;
+          continue;
         } else {
           marcaIdMap.set(codMarca, marcaExists[0].MarcaID);
-          // Note the column is "Descripcion" in your DB, not "Nombre"
-          await execWithDebug(`UPDATE Marca SET Descripcion = @p0 WHERE MarcaID = @p1`, [marcaDesc, marcaExists[0].MarcaID]);
         }
       }
       const dbMarcaId = marcaIdMap.get(codMarca);
       if (!dbMarcaId) continue;
+
+      // 1.1 Resolver FamiliaID para que aparezca en selectores de ventas/empadronamientos
+      let familiaId = null;
+      if (familiaDesc) {
+        const familiaKey = `${dbMarcaId}|${familiaDesc.toLowerCase()}`;
+        if (familiaIdMap.has(familiaKey)) {
+          familiaId = familiaIdMap.get(familiaKey);
+        } else {
+          const famExists = await execWithDebug(
+            `SELECT TOP 1 FamiliaID FROM Familia WHERE MarcaID = @p0 AND LTRIM(RTRIM(Nombre)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(@p1)) COLLATE Latin1_General_CI_AI`,
+            [dbMarcaId, familiaDesc]
+          );
+
+          if (famExists.length > 0) {
+            familiaId = famExists[0].FamiliaID;
+          } else {
+            const famInsert = await execWithDebug(
+              `INSERT INTO Familia (MarcaID, Nombre, Activo, FechaCreacion) OUTPUT INSERTED.FamiliaID VALUES (@p0, @p1, 1, GETDATE())`,
+              [dbMarcaId, familiaDesc]
+            );
+            if (famInsert.length > 0) {
+              familiaId = famInsert[0].FamiliaID;
+              creados.familias++;
+            }
+          }
+
+          if (familiaId) familiaIdMap.set(familiaKey, familiaId);
+        }
+      }
 
       // 2. Modelo Upsert
       const modExists = await execWithDebug(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, codModelo]);
@@ -715,7 +749,8 @@ const importarExcelCompleto = async (req, res) => {
 
       // Extract basic minimum data from the row
       const anioNum = toNum(normRow['año'] || normRow['anio'] || row['Año'], 'int');
-      const segmentoDesc = String(normRow['segmento'] || normRow['segmentacionautodata'] || row['Categoria'] || '').trim() || null;
+        const segmentoDesc = null; // String(normRow['segmento'] || normRow['segmentacionautodata'] || '').trim() || null;
+        const categoriaDesc = String(normRow['categoria'] || row['Categoria'] || '').trim() || null;
       const carroceriaDesc = String(normRow['carrocería'] || normRow['carroceria'] || row['TIPO2 (Carrocería)']  || row['Tipo'] || '').trim() || null;
       const origenDesc = String(normRow['origen'] || row['ORIGEN'] || '').trim() || null;
       const importadorDesc = String(normRow['importador'] || row['Importador'] || '').trim() || null;
@@ -736,19 +771,22 @@ const importarExcelCompleto = async (req, res) => {
         const res = await execWithDebug(`
           INSERT INTO Modelo (
             MarcaID, DescripcionModelo, CodigoModelo, CodigoAutodata, Familia, 
+            FamiliaID,
             Anio, SegmentacionAutodata, Carroceria, OrigenCodigo, Importador, 
             TipoMotor, TipoVehiculoElectrico, TipoCaja, CC, HP, 
             Cilindros, Valvulas, Puertas, Asientos, PrecioInicial, CombustibleCodigo,
             Estado, Activo
           ) OUTPUT INSERTED.ModeloID VALUES (
             @p0, @p1, @p2, @p3, @p4, 
-            @p5, @p6, @p7, @p8, @p9, 
-            @p10, @p11, @p12, @p13, @p14, 
-            @p15, @p16, @p17, @p18, @p19, @p20,
-            'importado', 1
+            @p5,
+            @p6, @p7, @p8, @p9, @p10, 
+            @p11, @p12, @p13, @p14, @p15, 
+            @p16, @p17, @p18, @p19, @p20, @p21,
+            'definitivo', 1
           )`, 
           [
             dbMarcaId, modeloDesc, codModelo, codigoAutodata, familiaDesc,
+            familiaId,
             anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc,
             tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum,
             cilindrosNum, valvulasNum, puertasNum, asientosNum, precioIniNum, combDesc
@@ -758,18 +796,21 @@ const importarExcelCompleto = async (req, res) => {
         creados.modelos++;
 
         // Add history log explicitly
-        await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'importado', 'ImportacionMasiva')`, [modeloIdDb]);
+        await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'definitivo', 'ImportacionMasiva')`, [modeloIdDb]);
       } else {
         modeloIdDb = modExists[0].ModeloID;
         await execWithDebug(`
           UPDATE Modelo SET 
             DescripcionModelo = @p0, CodigoAutodata = @p1, Familia = @p2,
-            Anio = @p3, SegmentacionAutodata = @p4, Carroceria = @p5, OrigenCodigo = @p6, Importador = @p7,
-            TipoMotor = @p8, TipoVehiculoElectrico = @p9, TipoCaja = @p10, CC = @p11, HP = @p12,
-            Cilindros = @p13, Valvulas = @p14, Puertas = @p15, Asientos = @p16, PrecioInicial = @p17, CombustibleCodigo = @p18
-          WHERE ModeloID = @p19`, 
+            FamiliaID = @p3,
+            Anio = @p4, SegmentacionAutodata = @p5, Carroceria = @p6, OrigenCodigo = @p7, Importador = @p8,
+            TipoMotor = @p9, TipoVehiculoElectrico = @p10, TipoCaja = @p11, CC = @p12, HP = @p13,
+            Cilindros = @p14, Valvulas = @p15, Puertas = @p16, Asientos = @p17, PrecioInicial = @p18, CombustibleCodigo = @p19,
+            Estado = 'definitivo'
+          WHERE ModeloID = @p20`, 
           [
             modeloDesc, codigoAutodata, familiaDesc,
+            familiaId,
             anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc,
             tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum,
             cilindrosNum, valvulasNum, puertasNum, asientosNum, precioIniNum, combDesc,
@@ -783,9 +824,9 @@ const importarExcelCompleto = async (req, res) => {
       // 3. Insert PrecioModelo
       if (precioNum !== null) {
         await execWithDebug(`
-          INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaRegistro, UsuarioID, Estado)
-          VALUES (@p0, @p1, 'USD', GETDATE(), @p2, 'Activo')
-        `, [modeloIdDb, precioNum, usuarioId]);
+          INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga)
+          VALUES (@p0, @p1, 'USD', GETDATE(), 'Plantilla Maestra', GETDATE())
+        `, [modeloIdDb, precioNum]);
         creados.precios++;
       }
 
@@ -842,4 +883,6 @@ module.exports = {
   procesarBatch,
   eliminarBatch
 };
+
+
 
