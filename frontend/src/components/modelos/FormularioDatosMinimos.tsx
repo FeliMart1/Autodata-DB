@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import { Modelo } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
 
+const normalizeTipo = (v?: string): string => {
+  if (!v) return '';
+  const l = v.toLowerCase().replace(/[^a-z]/g, '');
+  if (l.startsWith('autom')) return 'Automóvil';
+  if (l.startsWith('com')) return 'Comercial';
+  return v;
+};
+
 interface FormularioDatosMinimosProp {
   modelo: Modelo;
   onSave?: (data: Partial<Modelo>) => Promise<void>;
@@ -28,7 +36,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
     CC: modelo.CC || undefined,
     HP: modelo.HP || undefined,
     TipoCajaAut: modelo.TipoCajaAut || '',
-    Tipo: modelo.Tipo || '',
+    Tipo: normalizeTipo(modelo.Tipo),
     Puertas: modelo.Puertas || undefined,
     Asientos: modelo.Asientos || undefined,
     TipoMotor: modelo.TipoMotor || '',
@@ -69,7 +77,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
       CC: modelo.CC || undefined,
       HP: modelo.HP || undefined,
       TipoCajaAut: modelo.TipoCajaAut || '',
-      Tipo: modelo.Tipo || '',
+      Tipo: normalizeTipo(modelo.Tipo),
       Puertas: modelo.Puertas || undefined,
       Asientos: modelo.Asientos || undefined,
       TipoMotor: modelo.TipoMotor || '',

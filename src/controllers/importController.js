@@ -750,10 +750,14 @@ const importarExcelCompleto = async (req, res) => {
 
       // Extract basic minimum data from the row
       const anioNum = toNum(normRow['año'] || normRow['anio'], 'int');
-      const segmentoDesc = null;
-      const categoriaDesc = String(normRow['categoria'] || '').trim() || null;
-      // Bug fix: "Tipo" in Excel (col 187) = "Automóvil" / "Comercial" → Modelo.Tipo (Bug 3)
-      const tipoDesc = String(normRow['tipo'] || '').trim() || null;
+      // Col 7 "Categoria" in Excel = SegmentacionAutodata in DB (e.g. "SUV y CROSSOVER")
+      const segmentoDesc = String(normRow['categoria'] || '').trim() || null;
+      // Col 188 "Tipo" = automóvil/comercial → Modelo.Tipo; normalize to consistent casing
+      const tipoRaw = String(normRow['tipo'] || '').trim();
+      const tipoNorm = tipoRaw.toLowerCase().replace(/[^a-z]/g, '');
+      const tipoDesc = tipoNorm.startsWith('autom') ? 'Automóvil'
+                     : tipoNorm.startsWith('com') ? 'Comercial'
+                     : tipoRaw || null;
       // carroceria comes from the TIPO2Carrocera column, NOT from "Tipo" which is automóvil/comercial
       const carroceriaDesc = String(normRow['tipo2carrocera'] || normRow['carrocería'] || normRow['carroceria'] || '').trim() || null;
       const origenDesc = String(normRow['origen'] || '').trim() || null;
