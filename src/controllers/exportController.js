@@ -95,25 +95,197 @@ exports.exportarEmpadronamientosExcel = async (req, res) => {
 
 exports.exportarPlantillaMaestra = async (req, res) => {
   try {
-    // Obtener los nombres de columnas válidas de la tabla EquipamientoModelo
-    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo' AND COLUMN_NAME NOT IN ('EquipamientoID', 'ModeloID')");
-    const validEquipCols = columnsQuery.map(c => c.COLUMN_NAME);
-
-    let equipSelect = validEquipCols.map(c => `e.[${c}]`).join(', ');
-    if (equipSelect) equipSelect = ', ' + equipSelect;
-
     const query = `
-      SELECT 
-        ma.CodigoMarca AS [Codigo_Marca],
-        ma.Descripcion AS [Marca],
-        mo.CodigoModelo AS [Codigo_Modelo],
-        mo.DescripcionModelo AS [Descripcion_Modelo],
-        mo.Familia AS [Familia],
-        mo.CombustibleCodigo AS [Combustible],
-        mo.CategoriaCodigo AS [Categoria],
-        mo.PrecioInicial AS [Precio_USD],
-        mo.CodigoAutodata AS [CODCONCATENADO]
-        ${equipSelect}
+      SELECT
+        mo.CodigoAutodata        AS [CODCONCATENADO],
+        ma.Descripcion           AS [Marca],
+        ma.CodigoMarca           AS [Codigo_Marca],
+        mo.CodigoModelo          AS [Codigo_Modelo],
+        mo.DescripcionModelo     AS [Descripcion_Modelo],
+        mo.Familia               AS [Familia],
+        mo.CombustibleCodigo     AS [Combustible],
+        mo.SegmentacionAutodata  AS [Categoria],
+        mo.PrecioInicial         AS [Precio_USD],
+        e.[Largo],
+        e.[Ancho],
+        e.[Altura],
+        e.[DistanciaEjes],
+        e.[PesoOrdenMarcha],
+        e.[KgPorHP],
+        e.[Neumaticos],
+        e.[LlantasAleacion],
+        e.[DiametroLlantas],
+        e.[TPMS],
+        e.[KitInflableAntiPinchazo],
+        e.[RuedaAuxHomogenea],
+        e.[Cilindros],
+        e.[Valvulas],
+        e.[Inyeccion],
+        e.[Traccion],
+        e.[Suspension],
+        mo.TipoCajaAut           AS [Caja],
+        e.[MarchasVelocidades],
+        e.[Turbo],
+        e.[NumeroPuertas],
+        e.[Aceite],
+        e.[Norma],
+        e.[StartStop],
+        e.[CO2_g_km],
+        e.[ConsumoRuta],
+        e.[ConsumoUrbano],
+        e.[ConsumoMixto],
+        e.[GarantiaAnios],
+        e.[GarantiaKm],
+        e.[GarantiasDiferenciales],
+        e.[TipoVehiculoElectrico],
+        e.[EPedal],
+        e.[CapacidadTanqueHidrogeno],
+        e.[AutonomiaMaxRange],
+        e.[CicloNorma],
+        e.[PotenciaMotor],
+        e.[CapacidadOperativaBateria],
+        e.[ParMotorTorque],
+        e.[PotenciaCargaMax],
+        e.[TiposConectores],
+        e.[GarantiaCapBat],
+        e.[TecnologiaBat],
+        e.[OtrosDatos],
+        e.[TiempoCarga],
+        e.[CodigoFichaTecnica],
+        e.[SistemaClimatizacion],
+        e.[Direccion],
+        e.[TipoBloqueo],
+        e.[KeylessSmartKey],
+        e.[LevantaVidrios],
+        e.[EspejosElectricos],
+        e.[EspejoInteriorElectrocromado],
+        e.[EspejosAbatiblesElectricamente],
+        e.[Tapizado],
+        e.[VolanteRevestidoCuero],
+        e.[TablerDigital],
+        e.[Computadora],
+        e.[GPS],
+        e.[VelocidadCrucero],
+        e.[Inmovilizador],
+        e.[Alarma],
+        e.[ABAG],
+        e.[SRI],
+        e.[ABS],
+        e.[EBD_EBV_REF],
+        e.[DiscosFrenos],
+        e.[FrenoEstacionamientoElectrico],
+        e.[ESP_ControlEstabilidad],
+        e.[ControlTraccion],
+        e.[AsistFrenadoDetectorDistancia],
+        e.[AsistPendiente],
+        e.[DetectorCambioFila],
+        e.[DetectorPuntoCiego],
+        e.[TrafficSignRecognition],
+        e.[DriverAttentionControl],
+        e.[DetectorLluvia],
+        e.[GripControl],
+        e.[LimitadorVelocidad],
+        e.[AsistDescensoHDC],
+        e.[PaddleShift],
+        e.[ComandoAudioVolante],
+        e.[CD],
+        e.[MP3],
+        e.[USB],
+        e.[Bluetooth],
+        e.[DVD],
+        e.[MirrorScreen],
+        e.[SistemaMultimedia],
+        e.[PantallaMultimediaPulgadas],
+        e.[PantallaTactil],
+        e.[CargadorSmartphoneInduccion],
+        e.[KitHiFi],
+        e.[Radio],
+        e.[NumeroAsientos],
+        e.[AsientoElectricoCalefMasaje],
+        e.[AsientosRango2y3],
+        e.[Asiento2Mas1],
+        e.[ButacaElectrica],
+        e.[AsientoVentilado],
+        e.[AsientosMasajeador],
+        e.[ApoyabrazosDelantero],
+        e.[ApoyabrazosCentralTrasero],
+        e.[SoporteMusloDelantero],
+        e.[AsientoTraseroAjusteElectrico],
+        e.[C_3raFiladeasientoselctricos],
+        e.[TipoAlturaAsientoDelantero],
+        e.[SeatAdjustmentMemoryDriver],
+        e.[SeatAdjustmentMemoryCoDriver],
+        e.[LumbarAdjustmentFrontDriver],
+        e.[LumbarAdjustmentFrontCoDriver],
+        e.[SeatHeatingRear],
+        e.[Techo],
+        e.[TechoBiTono],
+        e.[BarrasTecho],
+        e.[NumeroTechosQueSeAbren],
+        e.[SensorEstacionamiento],
+        e.[Camara],
+        e.[SistemaAutomaticoEstacionamiento],
+        e.[FarosNeblina],
+        e.[FarosDireccionales],
+        e.[FarosFullLED],
+        e.[FarosHalogenosDRL_LED],
+        e.[FarosXenonLimpiadores],
+        e.[PackVisibilidad],
+        e.[PasoLucesCruzRutaAutomatica],
+        e.[VisionNocturna],
+        e.[FarosMatrix],
+        e.[LucesTraserasLED],
+        e.[LucesTraserasOLED],
+        e.[MaleteraAperturaElectrica],
+        e.[CapacidadBaul],
+        e.[CapacidadTanqueCombustible],
+        e.[ProtectorCaja],
+        e.[ParticionCabina],
+        e.[NumPuertasLaterales],
+        e.[PuertaLateralElectrica],
+        e.[CargaUtil_kg],
+        e.[VolumenUtil_m3],
+        e.[TipoAlturaUL],
+        e.[CapacidadCargaCamiones],
+        e.[AlertaTraficoCruzadoTrasero],
+        e.[AlertaTraficoCruzadoFrontal],
+        e.[FrenadoMulticolision],
+        e.[HeadUpDisplay],
+        e.[CityStop],
+        e.[FrenoPeatones],
+        e.[BloqueDiferencialTerreno],
+        e.[DesempaniadorElectrico],
+        e.[IluminacionAmbiental],
+        e.[LimpiaLavaParabrisasTrasero],
+        e.[BlackWheelFrame],
+        e.[VolanteMultifuncion],
+        e.[TablerDigital3D],
+        e.[AceleracionBEV_0a100],
+        e.[AccelerationICE],
+        e.[CargaElectricaWireless],
+        e.[CargaElectricaInduccion],
+        e.[CableElectricoTipo3Incluido],
+        e.[ChassisDriveSelect],
+        e.[ChassisSportSuspension],
+        e.[DireccionCuatroRuedas],
+        e.[LucesLaser],
+        e.[DashboardDisplayConfigurable],
+        e.[WirelessSmartphoneIntegration],
+        e.[MobilePhoneAntenna],
+        e.[DeflectorViento],
+        e.[AsientosDeportivos],
+        e.[TIPO2Carrocera],
+        e.[ORIGEN],
+        e.[HPCV],
+        e.[Bloqueodiferencialporterreno],
+        e.[Asientosconmasajeadornmero],
+        e.[AutonomadelmotorelctricoBEVyPHEV],
+        e.[Apoyabrazocentraldeasientotrasero],
+        mo.CC                    AS [CC],
+        mo.TipoMotor             AS [Tipo Motor],
+        e.[Caja]                 AS [Tipo Caja Automática],
+        mo.Tipo                  AS [Tipo],
+        mo.Importador            AS [Importador]
       FROM Modelo mo
       INNER JOIN Marca ma ON mo.MarcaID = ma.MarcaID
       LEFT JOIN EquipamientoModelo e ON mo.ModeloID = e.ModeloID
@@ -127,19 +299,19 @@ exports.exportarPlantillaMaestra = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No se encontraron modelos para exportar' });
     }
 
-    // Formatear booleanos a Si/No para mayor claridad en el Excel (opcional)
     const formattedData = datos.map(row => {
-      const formattedRow = { ...row };
-      validEquipCols.forEach(col => {
-        if (formattedRow[col] === true) formattedRow[col] = 'Si';
-        else if (formattedRow[col] === false) formattedRow[col] = 'No';
-      });
-      return formattedRow;
+      const formatted = {};
+      for (const [key, val] of Object.entries(row)) {
+        if (val === true) formatted[key] = 'Si';
+        else if (val === false) formatted[key] = 'No';
+        else formatted[key] = val;
+      }
+      return formatted;
     });
 
     const wb = xl.utils.book_new();
     const ws = xl.utils.json_to_sheet(formattedData);
-    xl.utils.book_append_sheet(wb, ws, 'Plantilla Maestra');
+    xl.utils.book_append_sheet(wb, ws, 'Plantilla_Datos');
 
     const buffer = xl.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
