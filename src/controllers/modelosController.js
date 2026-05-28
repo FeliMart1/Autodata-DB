@@ -547,6 +547,47 @@ exports.delete = async (req, res) => {
   }
 };
 
+// DELETE /api/modelos/:id/permanente - Eliminar modelo definitivamente (solo admin)
+exports.deletePermanente = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const idNum = parseInt(id, 10);
+
+    if (!idNum || isNaN(idNum)) {
+      return res.status(400).json({ success: false, message: 'ID inválido' });
+    }
+
+    // Verificar que el modelo existe
+    const modelo = await db.queryRaw(`SELECT ModeloID, Descripcion FROM Modelo WHERE ModeloID = ${idNum}`);
+    if (modelo.length === 0) {
+      return res.status(404).json({ success: false, message: 'Modelo no encontrado' });
+    }
+
+    const descripcion = modelo[0].Descripcion || `ID ${idNum}`;
+
+    // Borrar en cascada respetando FK
+    await db.queryRaw(`DELETE FROM EquipamientoModelo WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM PrecioModelo WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM ModeloHistorial WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM Modelo WHERE ModeloID = ${idNum}`);
+
+    logger.info(`Modelo eliminado PERMANENTEMENTE: ID ${idNum} - "${descripcion}" por usuario ${req.user.username}`);
+
+    res.json({
+      success: true,
+      message: `Modelo "${descripcion}" eliminado permanentemente`,
+      deletedId: idNum
+    });
+  } catch (error) {
+    logger.error('Error al eliminar modelo permanentemente:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar modelo permanentemente',
+      error: error.message
+    });
+  }
+};
+
 // Validar campos mínimos requeridos
 const validarCamposMinimos = (modelo) => {
   const camposRequeridos = [

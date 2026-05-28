@@ -304,29 +304,32 @@ exports.importarExcel = async (req, res) => {
         continue;
       }
 
-      // Check if it already exists
-      const existente = await db.queryRaw(`SELECT MarcaID FROM Marca WHERE CodigoMarca = '${marcod}'`);
-      if (existente.length > 0) {
+      const marcaIdInt = parseInt(marcod, 10);
+      if (isNaN(marcaIdInt)) {
         omitidas++;
-        errores.push(`Fila ${i + 2}: El código de marca '${marcod}' ya existe.`);
+        errores.push(`Fila ${i + 2}: MARCOD '${marcod}' no es un número válido.`);
         continue;
       }
 
+      // Check if it already exists (por ID o por código)
+      const existente = await db.queryRaw(`SELECT MarcaID FROM Marca WHERE MarcaID = ${marcaIdInt} OR CodigoMarca = '${marcod}'`);
+      if (existente.length > 0) {
+        omitidas++;
+        continue; // Ya existe, se saltea sin error
+      }
+
       // Check if name already exists
-      const nombreExistente = await db.queryRaw(`SELECT MarcaID FROM Marca WHERE Descripcion = '${mardsc}'`);
+      const nombreExistente = await db.queryRaw(`SELECT MarcaID FROM Marca WHERE Descripcion = '${mardsc.replace(/'/g, "''")}'`);
       if (nombreExistente.length > 0) {
         omitidas++;
         errores.push(`Fila ${i + 2}: El nombre de marca '${mardsc}' ya existe.`);
         continue;
       }
       
-      const marcaData = {
-        CodigoMarca: marcod,
-        Descripcion: mardsc,
-        Origen: origen
-      };
-
-      await db.insert('Marca', marcaData);
+      // INSERT con MarcaID explícito (tabla sin IDENTITY)
+      await db.queryRaw(
+        `INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) VALUES (${marcaIdInt}, '${marcod}', N'${mardsc.replace(/'/g, "''")}', N'${(origen || '').replace(/'/g, "''")}')`
+      );
       procesadas++;
     }
 

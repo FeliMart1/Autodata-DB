@@ -28,11 +28,14 @@ exports.getByModeloId = async (req, res) => {
 
     // Si existe data en formato JSON dentro de OtrosDatos, la parseamos y mezclamos        
     if (data && data.OtrosDatos && typeof data.OtrosDatos === 'string') {
-      try {
-        const extraData = JSON.parse(data.OtrosDatos);
-        data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad 
-      } catch (e) {
-        logger.error('Error parseando OtrosDatos en equipamiento:', e);
+      const trimmed = data.OtrosDatos.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          const extraData = JSON.parse(trimmed);
+          data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad 
+        } catch (e) {
+          logger.warn('OtrosDatos no es JSON válido, se ignora el parseo:', data.OtrosDatos);
+        }
       }
     }
 
@@ -80,8 +83,8 @@ exports.create = async (req, res) => {
     }
 
     const dbCols = await getDBColumns();
-    const columnasToInsert = ['ModeloID'];
-    const valoresToInsert = [modeloId];
+    const columnasToInsert = ['ModeloID', 'FechaCreacion'];
+    const valoresToInsert = [modeloId, 'GETDATE()'];
 
     // Siempre guardamos el payload crudo en OtrosDatos por si cambian las columnas
     if (dbCols.includes('OtrosDatos')) {
@@ -92,7 +95,7 @@ exports.create = async (req, res) => {
 
     // Insertar columnas que existan en la base de datos
     for (const key of Object.keys(equipamiento)) {
-      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion') {
+      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion' && key !== 'FechaCreacion') {
         columnasToInsert.push(key);
         const val = equipamiento[key];
         if (val === null || val === undefined) {

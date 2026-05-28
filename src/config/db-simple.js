@@ -170,6 +170,34 @@ const db = {
     return true;
   },
 
+  // Ejecuta múltiples queries secuencialmente en UNA SOLA conexión persistente.
+  // Necesario para operaciones que dependen de estado de sesión como SET IDENTITY_INSERT.
+  // Devuelve array de resultados, uno por query.
+  querySequentialOnSingleConn: (queries) => {
+    return new Promise((resolve, reject) => {
+      sql.open(connectionString, (openErr, conn) => {
+        if (openErr) return reject(openErr);
+
+        const results = [];
+        const runNext = (i) => {
+          if (i >= queries.length) {
+            conn.close();
+            return resolve(results);
+          }
+          conn.query(queries[i], (err, rows) => {
+            if (err) {
+              conn.close();
+              return reject(err);
+            }
+            results.push(rows || []);
+            runNext(i + 1);
+          });
+        };
+        runNext(0);
+      });
+    });
+  },
+
   close: () => {
     console.log('Connection pool closed');
   }

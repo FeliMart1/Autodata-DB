@@ -8,13 +8,24 @@ import { Input } from '@components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/Select';
 import { modeloService } from '@services/modeloService';
 import { marcasService } from '@/services/marcasService';
-import { Modelo, ModeloEstado, ModeloFilters } from '@/types/index';
+import { Modelo, ModeloEstado, ModeloFilters, UserRole } from '@/types/index';
 import { Marca as MarcaResponse } from '@/types/marca';
-import { Plus, Filter } from 'lucide-react';
+import { Plus, Filter, Trash2 } from 'lucide-react';
 import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useDebounce } from '@hooks/useDebounce';
+import { useAuth } from '@context/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@components/ui/alert-dialog';
 
 export function ModelosPage() {
   const [modelos, setModelos] = useState<Modelo[]>([]);
@@ -22,8 +33,12 @@ export function ModelosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<ModeloFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [deletingModelo, setDeletingModelo] = useState<Modelo | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 500);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.rol === UserRole.ADMIN;
 
   useEffect(() => {
     loadMarcas();
@@ -74,6 +89,21 @@ export function ModelosPage() {
   const clearFilters = () => {
     setFilters({});
     setSearchTerm('');
+  };
+
+  const handleDeletePermanente = async () => {
+    if (!deletingModelo) return;
+    setIsDeleting(true);
+    try {
+      await modeloService.deletePermanente(deletingModelo.ModeloID);
+      setModelos((prev) => prev.filter((m) => m.ModeloID !== deletingModelo.ModeloID));
+      setDeletingModelo(null);
+    } catch (error: any) {
+      console.error('Error al eliminar:', error);
+      alert(error.response?.data?.message || 'Error al eliminar el modelo');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const columns: ColumnDef<Modelo>[] = [
@@ -158,6 +188,23 @@ export function ModelosPage() {
         </span>
       ),
     },
+    ...(isAdmin ? [{
+      id: 'acciones',
+      header: '',
+      cell: ({ row }: { row: { original: Modelo } }) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          onClick={(e) => {
+            e.stopPropagation();
+            setDeletingModelo(row.original);
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      ),
+    }] : []),
   ];
 
   if (isLoading && modelos.length === 0) {
@@ -254,6 +301,31 @@ export function ModelosPage() {
           onRowClick={(row) => navigate(`/modelos/${row.ModeloID}`)}
         />
       </div>
+
+      {/* Diálogo confirmación eliminar permanente (solo admin) */}
+      <AlertDialog open={!!deletingModelo} onOpenChange={(open) => !open && setDeletingModelo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar modelo definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a eliminar permanentemente el modelo{' '}
+              <strong>{deletingModelo?.Modelo || deletingModelo?.DescripcionModelo || `ID ${deletingModelo?.ModeloID}`}</strong>.
+              <br /><br />
+              Esta acción <strong>no se puede deshacer</strong>. Se borrarán también todos sus datos de equipamiento, precios e historial.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePermanente}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar definitivamente'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
