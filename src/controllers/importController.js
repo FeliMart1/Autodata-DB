@@ -1,4 +1,4 @@
-const multer = require('multer');
+﻿const multer = require('multer');
 const { parse } = require('csv-parse/sync');
 const db = require('../config/db-simple');
 const logger = require('../config/logger');
@@ -658,6 +658,10 @@ const importarExcelCompleto = async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     // Row 1 has numeric column codes; row 2 has the actual column headers → skip row 1
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null, range: 1 });
+    // Parse as raw array of arrays to allow positional access (e.g. col 188 = TIPO)
+    const dataRaw = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: null });
+    // dataRaw[0] = row 1 (numeric codes), dataRaw[1] = row 2 (headers), dataRaw[2+] = data rows
+    let rawRowIndex = 0;
 
     const creados = { modelos: 0, familias: 0, equipamiento_inserts: 0, equipamiento_updates: 0, precios: 0, omitidos_marca: 0 };
 
@@ -682,8 +686,9 @@ const importarExcelCompleto = async (req, res) => {
         if (key !== '__rawRow') normRow[normalizeKey(key)] = row[key];
       }
 
-      // Acceso por índice de columna (1-based en Excel → 0-based en array)
-      const rawRow = row.__rawRow || [];
+      // Acceso posicional por índice de columna (dataRaw[0]=fila1, dataRaw[1]=headers, dataRaw[2+]=datos)
+      const rawRow = dataRaw[rawRowIndex + 2] || [];
+      rawRowIndex++;
 
       const codMarcaRaw = normRow['codigomarca'] || normRow['codmarca'] || row['Codigo_Marca'] || row['Codigo Marca'] || '';
       const codMarcaDigits = String(codMarcaRaw).replace(/\D+/g, '').trim();
@@ -765,8 +770,8 @@ const importarExcelCompleto = async (req, res) => {
       const anioNum = toNum(normRow['año'] || normRow['anio'], 'int');
       // Col 7 "Categoria" in Excel = SegmentacionAutodata in DB (e.g. "SUV y CROSSOVER")
       const segmentoDesc = String(normRow['categoria'] || '').trim() || null;
-      // Col 188 "Tipo" = automóvil/comercial → Modelo.Tipo; normalize to consistent casing
-      const tipoRaw = String(normRow['tipo'] || '').trim();
+      // Col 188 "Tipo" (pos 187 base-0) = automóvil/comercial → Modelo.Tipo; rawRow[187] evita problemas de columnas duplicadas
+      const tipoRaw = String(rawRow[187] != null ? rawRow[187] : (normRow['tipo'] || '')).trim();
       const tipoNorm = tipoRaw.toLowerCase().replace(/[^a-z]/g, '');
       const tipoDesc = tipoNorm.startsWith('autom') ? 'Automóvil'
                      : tipoNorm.startsWith('com') ? 'Comercial'

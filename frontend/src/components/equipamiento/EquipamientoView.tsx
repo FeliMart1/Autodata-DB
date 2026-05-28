@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
 import { Badge } from '@components/ui/Badge';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
@@ -100,7 +100,11 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
   const keys = Object.keys(equipamiento).filter(k => !['EquipamientoID', 'ModeloID', 'FechaCreacion', 'FechaModificacion', 'OtrosDatos'].includes(k));
   
   // Format a key like 'AsientoConductorElectrico' to 'Asiento Conductor Electrico'
+  const labelMap: Record<string, string> = {
+    Caja: "Tipo de Caja Autom\u00e1tica",
+  };
   const formatLabel = (key: string) => {
+    if (labelMap[key]) return labelMap[key];
     return key.replace(/([A-Z])/g, ' $1').trim();
   };
 
