@@ -95,95 +95,197 @@ exports.exportarEmpadronamientosExcel = async (req, res) => {
 
 exports.exportarPlantillaMaestra = async (req, res) => {
   try {
-    // Orden exacto de las 189 columnas de la Plantilla Maestra
-    const TEMPLATE_HEADERS = [
-      "CODCONCATENADO","Marca","Codigo_Marca","Codigo_Modelo","Descripcion_Modelo","Familia","Combustible","Categoria","Precio_USD",
-      "Largo","Ancho","Altura","DistanciaEjes","PesoOrdenMarcha","KgPorHP","Neumaticos","LlantasAleacion","DiametroLlantas","TPMS",
-      "KitInflableAntiPinchazo","RuedaAuxHomogenea","Cilindros","Valvulas","Inyeccion","Traccion","Suspension","Caja","MarchasVelocidades",
-      "Turbo","NumeroPuertas","Aceite","Norma","StartStop","CO2_g_km","ConsumoRuta","ConsumoUrbano","ConsumoMixto","GarantiaAnios",
-      "GarantiaKm","GarantiasDiferenciales","TipoVehiculoElectrico","EPedal","CapacidadTanqueHidrogeno","AutonomiaMaxRange","CicloNorma",
-      "PotenciaMotor","CapacidadOperativaBateria","ParMotorTorque","PotenciaCargaMax","TiposConectores","GarantiaCapBat","TecnologiaBat",
-      "OtrosDatos","TiempoCarga","CodigoFichaTecnica","SistemaClimatizacion","Direccion","TipoBloqueo","KeylessSmartKey","LevantaVidrios",
-      "EspejosElectricos","EspejoInteriorElectrocromado","EspejosAbatiblesElectricamente","Tapizado","VolanteRevestidoCuero","TablerDigital",
-      "Computadora","GPS","VelocidadCrucero","Inmovilizador","Alarma","ABAG","SRI","ABS","EBD_EBV_REF","DiscosFrenos",
-      "FrenoEstacionamientoElectrico","ESP_ControlEstabilidad","ControlTraccion","AsistFrenadoDetectorDistancia","AsistPendiente",
-      "DetectorCambioFila","DetectorPuntoCiego","TrafficSignRecognition","DriverAttentionControl","DetectorLluvia","GripControl",
-      "LimitadorVelocidad","AsistDescensoHDC","PaddleShift","ComandoAudioVolante","CD","MP3","USB","Bluetooth","DVD","MirrorScreen",
-      "SistemaMultimedia","PantallaMultimediaPulgadas","PantallaTactil","CargadorSmartphoneInduccion","KitHiFi","Radio","NumeroAsientos",
-      "AsientoElectricoCalefMasaje","AsientosRango2y3","Asiento2Mas1","ButacaElectrica","AsientoVentilado","AsientosMasajeador",
-      "ApoyabrazosDelantero","ApoyabrazosCentralTrasero","SoporteMusloDelantero","AsientoTraseroAjusteElectrico",
-      "C_3raFiladeasientoselctricos","TipoAlturaAsientoDelantero","SeatAdjustmentMemoryDriver","SeatAdjustmentMemoryCoDriver",
-      "LumbarAdjustmentFrontDriver","LumbarAdjustmentFrontCoDriver","SeatHeatingRear","Techo","TechoBiTono","BarrasTecho",
-      "NumeroTechosQueSeAbren","SensorEstacionamiento","Camara","SistemaAutomaticoEstacionamiento","FarosNeblina","FarosDireccionales",
-      "FarosFullLED","FarosHalogenosDRL_LED","FarosXenonLimpiadores","PackVisibilidad","PasoLucesCruzRutaAutomatica","VisionNocturna",
-      "FarosMatrix","LucesTraserasLED","LucesTraserasOLED","MaleteraAperturaElectrica","CapacidadBaul","CapacidadTanqueCombustible",
-      "ProtectorCaja","ParticionCabina","NumPuertasLaterales","PuertaLateralElectrica","CargaUtil_kg","VolumenUtil_m3","TipoAlturaUL",
-      "CapacidadCargaCamiones","AlertaTraficoCruzadoTrasero","AlertaTraficoCruzadoFrontal","FrenadoMulticolision","HeadUpDisplay",
-      "CityStop","FrenoPeatones","BloqueDiferencialTerreno","DesempaniadorElectrico","IluminacionAmbiental","LimpiaLavaParabrisasTrasero",
-      "BlackWheelFrame","VolanteMultifuncion","TablerDigital3D","AceleracionBEV_0a100","AccelerationICE","CargaElectricaWireless",
-      "CargaElectricaInduccion","CableElectricoTipo3Incluido","ChassisDriveSelect","ChassisSportSuspension","DireccionCuatroRuedas",
-      "LucesLaser","DashboardDisplayConfigurable","WirelessSmartphoneIntegration","MobilePhoneAntenna","DeflectorViento","AsientosDeportivos",
-      "TIPO2Carrocera","ORIGEN","HPCV","Bloqueodiferencialporterreno","Asientosconmasajeadornmero","AutonomadelmotorelctricoBEVyPHEV",
-      "Apoyabrazocentraldeasientotrasero","CC","Tipo Motor","Tipo Caja Automática","Tipo","Importador"
-    ];
-
-    // Columnas de equipamiento (posiciones 10-177 del template, índices 9-176 del array)
-    // Nombre en template → nombre en DB (EquipamientoModelo). La mayoría es idéntico salvo la excepción indicada.
-    const EQUIP_COLS = [
-      "Largo","Ancho","Altura","DistanciaEjes","PesoOrdenMarcha","KgPorHP","Neumaticos","LlantasAleacion","DiametroLlantas","TPMS",
-      "KitInflableAntiPinchazo","RuedaAuxHomogenea","Cilindros","Valvulas","Inyeccion","Traccion","Suspension","Caja","MarchasVelocidades",
-      "Turbo","NumeroPuertas","Aceite","Norma","StartStop","CO2_g_km","ConsumoRuta","ConsumoUrbano","ConsumoMixto","GarantiaAnios",
-      "GarantiaKm","GarantiasDiferenciales","TipoVehiculoElectrico","EPedal","CapacidadTanqueHidrogeno","AutonomiaMaxRange","CicloNorma",
-      "PotenciaMotor","CapacidadOperativaBateria","ParMotorTorque","PotenciaCargaMax","TiposConectores","GarantiaCapBat","TecnologiaBat",
-      "OtrosDatos","TiempoCarga","CodigoFichaTecnica","SistemaClimatizacion","Direccion","TipoBloqueo","KeylessSmartKey","LevantaVidrios",
-      "EspejosElectricos","EspejoInteriorElectrocromado","EspejosAbatiblesElectricamente","Tapizado","VolanteRevestidoCuero","TablerDigital",
-      "Computadora","GPS","VelocidadCrucero","Inmovilizador","Alarma","ABAG","SRI","ABS","EBD_EBV_REF","DiscosFrenos",
-      "FrenoEstacionamientoElectrico","ESP_ControlEstabilidad","ControlTraccion","AsistFrenadoDetectorDistancia","AsistPendiente",
-      "DetectorCambioFila","DetectorPuntoCiego","TrafficSignRecognition","DriverAttentionControl","DetectorLluvia","GripControl",
-      "LimitadorVelocidad","AsistDescensoHDC","PaddleShift","ComandoAudioVolante","CD","MP3","USB","Bluetooth","DVD","MirrorScreen",
-      "SistemaMultimedia","PantallaMultimediaPulgadas","PantallaTactil","CargadorSmartphoneInduccion","KitHiFi","Radio","NumeroAsientos",
-      "AsientoElectricoCalefMasaje","AsientosRango2y3","Asiento2Mas1","ButacaElectrica","AsientoVentilado","AsientosMasajeador",
-      "ApoyabrazosDelantero","ApoyabrazosCentralTrasero","SoporteMusloDelantero","AsientoTraseroAjusteElectrico",
-      "TerceraFilaAsientosElectricos", // DB: TerceraFilaAsientosElectricos → template: C_3raFiladeasientoselctricos
-      "TipoAlturaAsientoDelantero","SeatAdjustmentMemoryDriver","SeatAdjustmentMemoryCoDriver",
-      "LumbarAdjustmentFrontDriver","LumbarAdjustmentFrontCoDriver","SeatHeatingRear","Techo","TechoBiTono","BarrasTecho",
-      "NumeroTechosQueSeAbren","SensorEstacionamiento","Camara","SistemaAutomaticoEstacionamiento","FarosNeblina","FarosDireccionales",
-      "FarosFullLED","FarosHalogenosDRL_LED","FarosXenonLimpiadores","PackVisibilidad","PasoLucesCruzRutaAutomatica","VisionNocturna",
-      "FarosMatrix","LucesTraserasLED","LucesTraserasOLED","MaleteraAperturaElectrica","CapacidadBaul","CapacidadTanqueCombustible",
-      "ProtectorCaja","ParticionCabina","NumPuertasLaterales","PuertaLateralElectrica","CargaUtil_kg","VolumenUtil_m3","TipoAlturaUL",
-      "CapacidadCargaCamiones","AlertaTraficoCruzadoTrasero","AlertaTraficoCruzadoFrontal","FrenadoMulticolision","HeadUpDisplay",
-      "CityStop","FrenoPeatones","BloqueDiferencialTerreno","DesempaniadorElectrico","IluminacionAmbiental","LimpiaLavaParabrisasTrasero",
-      "BlackWheelFrame","VolanteMultifuncion","TablerDigital3D","AceleracionBEV_0a100","AccelerationICE","CargaElectricaWireless",
-      "CargaElectricaInduccion","CableElectricoTipo3Incluido","ChassisDriveSelect","ChassisSportSuspension","DireccionCuatroRuedas",
-      "LucesLaser","DashboardDisplayConfigurable","WirelessSmartphoneIntegration","MobilePhoneAntenna","DeflectorViento","AsientosDeportivos"
-    ]; // 168 columnas (posiciones template 10..177)
-
-    const equipSelectSQL = EQUIP_COLS.map(c => `e.[${c}]`).join(',\n        ');
-
     const query = `
       SELECT
-        mo.CodigoAutodata         AS __cod,
-        ma.Descripcion            AS __marca,
-        ma.CodigoMarca            AS __codmarca,
-        mo.CodigoModelo           AS __codmodelo,
-        mo.DescripcionModelo      AS __descmodelo,
-        mo.Familia                AS __familia,
-        mo.CombustibleCodigo      AS __combustible,
-        mo.SegmentacionAutodata   AS __categoria,
-        mo.PrecioInicial          AS __precio,
-        ${equipSelectSQL},
-        ISNULL(e.TIPO2Carrocera, mo.Carroceria)  AS __carroceria,
-        ISNULL(e.ORIGEN, mo.OrigenCodigo)         AS __origen,
-        ISNULL(e.HPCV, mo.HP)                     AS __hp,
-        NULL                                       AS __bloqueo,
-        NULL                                       AS __asientosmasaje,
-        NULL                                       AS __autonomia,
-        NULL                                       AS __apoyabrazo,
-        mo.CC                     AS __cc,
-        mo.TipoMotor              AS __tipomotor,
-        mo.TipoCaja               AS __tipocaja,
-        mo.CategoriaCodigo        AS __tipo,
-        mo.Importador             AS __importador
+        mo.CodigoAutodata        AS [CODCONCATENADO],
+        ma.Descripcion           AS [Marca],
+        ma.CodigoMarca           AS [Codigo_Marca],
+        mo.CodigoModelo          AS [Codigo_Modelo],
+        mo.DescripcionModelo     AS [Descripcion_Modelo],
+        mo.Familia               AS [Familia],
+        mo.CombustibleCodigo     AS [Combustible],
+        mo.SegmentacionAutodata  AS [Categoria],
+        mo.PrecioInicial         AS [Precio_USD],
+        e.[Largo],
+        e.[Ancho],
+        e.[Altura],
+        e.[DistanciaEjes],
+        e.[PesoOrdenMarcha],
+        e.[KgPorHP],
+        e.[Neumaticos],
+        e.[LlantasAleacion],
+        e.[DiametroLlantas],
+        e.[TPMS],
+        e.[KitInflableAntiPinchazo],
+        e.[RuedaAuxHomogenea],
+        e.[Cilindros],
+        e.[Valvulas],
+        e.[Inyeccion],
+        e.[Traccion],
+        e.[Suspension],
+        mo.TipoCajaAut           AS [Caja],
+        e.[MarchasVelocidades],
+        e.[Turbo],
+        e.[NumeroPuertas],
+        e.[Aceite],
+        e.[Norma],
+        e.[StartStop],
+        e.[CO2_g_km],
+        e.[ConsumoRuta],
+        e.[ConsumoUrbano],
+        e.[ConsumoMixto],
+        e.[GarantiaAnios],
+        e.[GarantiaKm],
+        e.[GarantiasDiferenciales],
+        e.[TipoVehiculoElectrico],
+        e.[EPedal],
+        e.[CapacidadTanqueHidrogeno],
+        e.[AutonomiaMaxRange],
+        e.[CicloNorma],
+        e.[PotenciaMotor],
+        e.[CapacidadOperativaBateria],
+        e.[ParMotorTorque],
+        e.[PotenciaCargaMax],
+        e.[TiposConectores],
+        e.[GarantiaCapBat],
+        e.[TecnologiaBat],
+        e.[OtrosDatos],
+        e.[TiempoCarga],
+        e.[CodigoFichaTecnica],
+        e.[SistemaClimatizacion],
+        e.[Direccion],
+        e.[TipoBloqueo],
+        e.[KeylessSmartKey],
+        e.[LevantaVidrios],
+        e.[EspejosElectricos],
+        e.[EspejoInteriorElectrocromado],
+        e.[EspejosAbatiblesElectricamente],
+        e.[Tapizado],
+        e.[VolanteRevestidoCuero],
+        e.[TablerDigital],
+        e.[Computadora],
+        e.[GPS],
+        e.[VelocidadCrucero],
+        e.[Inmovilizador],
+        e.[Alarma],
+        e.[ABAG],
+        e.[SRI],
+        e.[ABS],
+        e.[EBD_EBV_REF],
+        e.[DiscosFrenos],
+        e.[FrenoEstacionamientoElectrico],
+        e.[ESP_ControlEstabilidad],
+        e.[ControlTraccion],
+        e.[AsistFrenadoDetectorDistancia],
+        e.[AsistPendiente],
+        e.[DetectorCambioFila],
+        e.[DetectorPuntoCiego],
+        e.[TrafficSignRecognition],
+        e.[DriverAttentionControl],
+        e.[DetectorLluvia],
+        e.[GripControl],
+        e.[LimitadorVelocidad],
+        e.[AsistDescensoHDC],
+        e.[PaddleShift],
+        e.[ComandoAudioVolante],
+        e.[CD],
+        e.[MP3],
+        e.[USB],
+        e.[Bluetooth],
+        e.[DVD],
+        e.[MirrorScreen],
+        e.[SistemaMultimedia],
+        e.[PantallaMultimediaPulgadas],
+        e.[PantallaTactil],
+        e.[CargadorSmartphoneInduccion],
+        e.[KitHiFi],
+        e.[Radio],
+        e.[NumeroAsientos],
+        e.[AsientoElectricoCalefMasaje],
+        e.[AsientosRango2y3],
+        e.[Asiento2Mas1],
+        e.[ButacaElectrica],
+        e.[AsientoVentilado],
+        e.[AsientosMasajeador],
+        e.[ApoyabrazosDelantero],
+        e.[ApoyabrazosCentralTrasero],
+        e.[SoporteMusloDelantero],
+        e.[AsientoTraseroAjusteElectrico],
+        e.[C_3raFiladeasientoselctricos],
+        e.[TipoAlturaAsientoDelantero],
+        e.[SeatAdjustmentMemoryDriver],
+        e.[SeatAdjustmentMemoryCoDriver],
+        e.[LumbarAdjustmentFrontDriver],
+        e.[LumbarAdjustmentFrontCoDriver],
+        e.[SeatHeatingRear],
+        e.[Techo],
+        e.[TechoBiTono],
+        e.[BarrasTecho],
+        e.[NumeroTechosQueSeAbren],
+        e.[SensorEstacionamiento],
+        e.[Camara],
+        e.[SistemaAutomaticoEstacionamiento],
+        e.[FarosNeblina],
+        e.[FarosDireccionales],
+        e.[FarosFullLED],
+        e.[FarosHalogenosDRL_LED],
+        e.[FarosXenonLimpiadores],
+        e.[PackVisibilidad],
+        e.[PasoLucesCruzRutaAutomatica],
+        e.[VisionNocturna],
+        e.[FarosMatrix],
+        e.[LucesTraserasLED],
+        e.[LucesTraserasOLED],
+        e.[MaleteraAperturaElectrica],
+        e.[CapacidadBaul],
+        e.[CapacidadTanqueCombustible],
+        e.[ProtectorCaja],
+        e.[ParticionCabina],
+        e.[NumPuertasLaterales],
+        e.[PuertaLateralElectrica],
+        e.[CargaUtil_kg],
+        e.[VolumenUtil_m3],
+        e.[TipoAlturaUL],
+        e.[CapacidadCargaCamiones],
+        e.[AlertaTraficoCruzadoTrasero],
+        e.[AlertaTraficoCruzadoFrontal],
+        e.[FrenadoMulticolision],
+        e.[HeadUpDisplay],
+        e.[CityStop],
+        e.[FrenoPeatones],
+        e.[BloqueDiferencialTerreno],
+        e.[DesempaniadorElectrico],
+        e.[IluminacionAmbiental],
+        e.[LimpiaLavaParabrisasTrasero],
+        e.[BlackWheelFrame],
+        e.[VolanteMultifuncion],
+        e.[TablerDigital3D],
+        e.[AceleracionBEV_0a100],
+        e.[AccelerationICE],
+        e.[CargaElectricaWireless],
+        e.[CargaElectricaInduccion],
+        e.[CableElectricoTipo3Incluido],
+        e.[ChassisDriveSelect],
+        e.[ChassisSportSuspension],
+        e.[DireccionCuatroRuedas],
+        e.[LucesLaser],
+        e.[DashboardDisplayConfigurable],
+        e.[WirelessSmartphoneIntegration],
+        e.[MobilePhoneAntenna],
+        e.[DeflectorViento],
+        e.[AsientosDeportivos],
+        e.[TIPO2Carrocera],
+        e.[ORIGEN],
+        e.[HPCV],
+        e.[Bloqueodiferencialporterreno],
+        e.[Asientosconmasajeadornmero],
+        e.[AutonomadelmotorelctricoBEVyPHEV],
+        e.[Apoyabrazocentraldeasientotrasero],
+        mo.CC                    AS [CC],
+        mo.TipoMotor             AS [Tipo Motor],
+        e.[Caja]                 AS [Tipo Caja Automática],
+        mo.Tipo                  AS [Tipo],
+        mo.Importador            AS [Importador]
       FROM Modelo mo
       INNER JOIN Marca ma ON mo.MarcaID = ma.MarcaID
       LEFT JOIN EquipamientoModelo e ON mo.ModeloID = e.ModeloID
@@ -197,28 +299,14 @@ exports.exportarPlantillaMaestra = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No se encontraron modelos para exportar' });
     }
 
-    // Función para convertir booleanos a Si/No
-    const fmtBool = (v) => {
-      if (v === true || v === 1) return 'Si';
-      if (v === false || v === 0) return 'No';
-      return v;
-    };
-
-    // Construir filas como arrays de 189 valores en el orden del template
-    const dataRows = datos.map(row => {
-      const base = [
-        row.__cod, row.__marca, row.__codmarca, row.__codmodelo, row.__descmodelo,
-        row.__familia, row.__combustible, row.__categoria, row.__precio
-      ];
-      // Equipamiento (168 cols)
-      const equip = EQUIP_COLS.map(col => fmtBool(row[col]));
-      // Últimas 12 cols
-      const tail = [
-        row.__carroceria, row.__origen, row.__hp,
-        row.__bloqueo, row.__asientosmasaje, row.__autonomia, row.__apoyabrazo,
-        row.__cc, row.__tipomotor, row.__tipocaja, row.__tipo, row.__importador
-      ];
-      return [...base, ...equip, ...tail];
+    const formattedData = datos.map(row => {
+      const formatted = {};
+      for (const [key, val] of Object.entries(row)) {
+        if (val === true) formatted[key] = 'Si';
+        else if (val === false) formatted[key] = 'No';
+        else formatted[key] = val;
+      }
+      return formatted;
     });
 
     // Fila 1: números de columna (1..189), Fila 2: headers, Fila 3+: datos
@@ -226,8 +314,8 @@ exports.exportarPlantillaMaestra = async (req, res) => {
     const aoa = [numberRow, TEMPLATE_HEADERS, ...dataRows];
 
     const wb = xl.utils.book_new();
-    const ws = xl.utils.aoa_to_sheet(aoa);
-    xl.utils.book_append_sheet(wb, ws, 'Plantilla Maestra');
+    const ws = xl.utils.json_to_sheet(formattedData);
+    xl.utils.book_append_sheet(wb, ws, 'Plantilla_Datos');
 
     const buffer = xl.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
