@@ -363,7 +363,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipo caja Aut.</label>
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipo de Caja Aut.</label>
                 <select disabled={readonly} value={(formData['TipoCajaAut'] as string | number) || ''} onChange={(e) => { handleChange('TipoCajaAut', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white">
                   <option value="">Seleccionar...</option>
                   <option value="Automática">Automática</option>

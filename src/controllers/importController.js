@@ -648,7 +648,8 @@ const importarExcelCompleto = async (req, res) => {
     const xlsx = require('xlsx');
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
-    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
+    // Row 1 has numeric column codes; row 2 has the actual column headers → skip row 1
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null, range: 1 });
 
     const creados = { modelos: 0, familias: 0, equipamiento_inserts: 0, equipamiento_updates: 0, precios: 0, omitidos_marca: 0 };
 
@@ -748,48 +749,60 @@ const importarExcelCompleto = async (req, res) => {
       let modeloIdDb = null;
 
       // Extract basic minimum data from the row
-      const anioNum = toNum(normRow['año'] || normRow['anio'] || row['Año'], 'int');
-        const segmentoDesc = null; // String(normRow['segmento'] || normRow['segmentacionautodata'] || '').trim() || null;
-        const categoriaDesc = String(normRow['categoria'] || row['Categoria'] || '').trim() || null;
-      const carroceriaDesc = String(normRow['carrocería'] || normRow['carroceria'] || row['TIPO2 (Carrocería)']  || row['Tipo'] || '').trim() || null;
-      const origenDesc = String(normRow['origen'] || row['ORIGEN'] || '').trim() || null;
-      const importadorDesc = String(normRow['importador'] || row['Importador'] || '').trim() || null;
-      const tipoMotorDesc = String(normRow['tipomotor'] || row['Tipo Motor'] || '').trim() || null;
-      const vehiculoElectricoDesc = String(normRow['tipodevehículoelectrico/híbrido'] || normRow['tipovehiculoelectrico/hibrido'] || normRow['tipovehiculoelectrico'] || row['Tipo Vehículo Electrico'] || '').trim() || null;
-      const tipoCajaDesc = String(normRow['tipodecaja'] || normRow['tipocaja'] || normRow['tipocajaautomatica'] || row['Tipo Caja Automática'] || row['Caja'] || '').trim() || null;
-      const cilinCcNum = toNum(normRow['cilindrada(cc)'] || normRow['cilindrada'] || normRow['cc'] || row['CC'], 'int');
-      const potenciaHpNum = toNum(normRow['potencia(hp)'] || normRow['potencia'] || normRow['hp'] || row['HP (CV)'], 'int');
-      const cilindrosNum = toNum(normRow['cilindros'] || row['Cilindros'], 'int');
-      const valvulasNum = toNum(normRow['válvulas'] || normRow['valvulas'] || row['Valvulas'], 'int');
-      const puertasNum = toNum(normRow['puertas'] || normRow['numeropuertas'] || row['Numero Puertas'], 'int');
-      const asientosNum = toNum(normRow['asientos'] || normRow['numeroasientos'] || row['Numero Asientos'], 'int');
-      const combDesc = String(normRow['combustible'] || row['COMBUSTIBLE'] || '').trim() || null;
+      const anioNum = toNum(normRow['año'] || normRow['anio'], 'int');
+      // Col 7 "Categoria" in Excel = SegmentacionAutodata in DB (e.g. "SUV y CROSSOVER")
+      const segmentoDesc = String(normRow['categoria'] || '').trim() || null;
+      // Col 188 "Tipo" = automóvil/comercial → Modelo.Tipo; normalize to consistent casing
+      const tipoRaw = String(normRow['tipo'] || '').trim();
+      const tipoNorm = tipoRaw.toLowerCase().replace(/[^a-z]/g, '');
+      const tipoDesc = tipoNorm.startsWith('autom') ? 'Automóvil'
+                     : tipoNorm.startsWith('com') ? 'Comercial'
+                     : tipoRaw || null;
+      // carroceria comes from the TIPO2Carrocera column, NOT from "Tipo" which is automóvil/comercial
+      const carroceriaDesc = String(normRow['tipo2carrocera'] || normRow['carrocería'] || normRow['carroceria'] || '').trim() || null;
+      const origenDesc = String(normRow['origen'] || '').trim() || null;
+      const importadorDesc = String(normRow['importador'] || '').trim() || null;
+      const tipoMotorDesc = String(normRow['tipomotor'] || '').trim() || null;
+      const vehiculoElectricoDesc = String(normRow['tipodevehículoelectrico/híbrido'] || normRow['tipovehiculoelectrico/hibrido'] || normRow['tipovehiculoelectrico'] || '').trim() || null;
+      // Bug fix: "Caja" col (index 26) = Automática/Manual → Modelo.TipoCajaAut (Bug 1)
+      // "Tipo Caja Automática" col (index 186) goes to EquipamientoModelo.Caja (handled below)
+      const tipoCajaDesc = String(normRow['caja'] || '').trim() || null;
+      const cilinCcNum = toNum(normRow['cc'], 'int');
+      const potenciaHpNum = toNum(normRow['hpcv'] || normRow['hp'] || normRow['potencia'], 'int');
+      const cilindrosNum = toNum(normRow['cilindros'], 'int');
+      const valvulasNum = toNum(normRow['valvulas'] || normRow['válvulas'] || normRow['vlvulas'], 'int');
+      const puertasNum = toNum(normRow['numeropuertas'] || normRow['puertas'] || normRow['ndepuertas'], 'int');
+      const asientosNum = toNum(normRow['numeroasientos'] || normRow['asientos'] || normRow['nmerodeasientos'], 'int');
+      const combDesc = String(normRow['combustible'] || '').trim() || null;
 
       const precioIniNum = precioNum; // initial load maps to base price as well
 
       if (modExists.length === 0) {
         const res = await execWithDebug(`
           INSERT INTO Modelo (
-            MarcaID, DescripcionModelo, CodigoModelo, CodigoAutodata, Familia, 
+            MarcaID, DescripcionModelo, CodigoModelo, CodigoAutodata, Familia,
             FamiliaID,
-            Anio, SegmentacionAutodata, Carroceria, OrigenCodigo, Importador, 
-            TipoMotor, TipoVehiculoElectrico, TipoCaja, CC, HP, 
+            Anio, SegmentacionAutodata, Carroceria, OrigenCodigo, Importador,
+            TipoMotor, TipoVehiculoElectrico, TipoCajaAut, CC, HP,
             Cilindros, Valvulas, Puertas, Asientos, PrecioInicial, CombustibleCodigo,
+            Tipo,
             Estado, Activo
           ) OUTPUT INSERTED.ModeloID VALUES (
-            @p0, @p1, @p2, @p3, @p4, 
+            @p0, @p1, @p2, @p3, @p4,
             @p5,
-            @p6, @p7, @p8, @p9, @p10, 
-            @p11, @p12, @p13, @p14, @p15, 
+            @p6, @p7, @p8, @p9, @p10,
+            @p11, @p12, @p13, @p14, @p15,
             @p16, @p17, @p18, @p19, @p20, @p21,
+            @p22,
             'definitivo', 1
-          )`, 
+          )`,
           [
             dbMarcaId, modeloDesc, codModelo, codigoAutodata, familiaDesc,
             familiaId,
             anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc,
             tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum,
-            cilindrosNum, valvulasNum, puertasNum, asientosNum, precioIniNum, combDesc
+            cilindrosNum, valvulasNum, puertasNum, asientosNum, precioIniNum, combDesc,
+            tipoDesc
           ]
         );
         modeloIdDb = res[0].ModeloID;
@@ -800,20 +813,22 @@ const importarExcelCompleto = async (req, res) => {
       } else {
         modeloIdDb = modExists[0].ModeloID;
         await execWithDebug(`
-          UPDATE Modelo SET 
+          UPDATE Modelo SET
             DescripcionModelo = @p0, CodigoAutodata = @p1, Familia = @p2,
             FamiliaID = @p3,
             Anio = @p4, SegmentacionAutodata = @p5, Carroceria = @p6, OrigenCodigo = @p7, Importador = @p8,
-            TipoMotor = @p9, TipoVehiculoElectrico = @p10, TipoCaja = @p11, CC = @p12, HP = @p13,
+            TipoMotor = @p9, TipoVehiculoElectrico = @p10, TipoCajaAut = @p11, CC = @p12, HP = @p13,
             Cilindros = @p14, Valvulas = @p15, Puertas = @p16, Asientos = @p17, PrecioInicial = @p18, CombustibleCodigo = @p19,
+            Tipo = @p20,
             Estado = 'definitivo'
-          WHERE ModeloID = @p20`, 
+          WHERE ModeloID = @p21`,
           [
             modeloDesc, codigoAutodata, familiaDesc,
             familiaId,
             anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc,
             tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum,
             cilindrosNum, valvulasNum, puertasNum, asientosNum, precioIniNum, combDesc,
+            tipoDesc,
             modeloIdDb
           ]
         );
@@ -831,6 +846,15 @@ const importarExcelCompleto = async (req, res) => {
       }
 
       // 4. EquipamientoModelo Upsert (dynamic payloads by DB column types)
+      // "Tipo Caja Automática" (col 186) is the detailed gearbox description → EquipamientoModelo.Caja
+      // "Caja" (col 26) is Automática/Manual for Modelo.TipoCajaAut only — exclude it from equipment
+      const tipoCajaAutoVal = normRow['tipocajaautomática']; // 'á' = U+00E1
+      if (tipoCajaAutoVal !== undefined) {
+        normRow['caja'] = tipoCajaAutoVal;
+      } else {
+        delete normRow['caja'];
+      }
+
       const equipPayload = { ModeloID: modeloIdDb };
       for (const col of dbEquipCols) {
         let val = normRow[col.normKey];
