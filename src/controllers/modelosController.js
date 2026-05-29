@@ -40,7 +40,7 @@ exports.getAll = async (req, res) => {
     if (anio) whereConditions.push(`m.Anio = ${anio}`);
     if (tipo) whereConditions.push(`m.Tipo = N'${tipo}'`);
     if (search) {
-      whereConditions.push(`(m.DescripcionModelo LIKE N'%${search}%' OR m.Familia LIKE N'%${search}%' OR mar.Descripcion LIKE N'%${search}%')`);
+      whereConditions.push(`(m.DescripcionModelo LIKE N'%${search}%' OR m.Familia LIKE N'%${search}%' OR mar.Descripcion LIKE N'%${search}%' OR m.CodigoModelo LIKE N'%${search}%' OR mar.CodigoMarca LIKE N'%${search}%' OR m.CodigoAutodata LIKE N'%${search}%')`);
     }
     
     const whereClause = whereConditions.join(' AND ');
