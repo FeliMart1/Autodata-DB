@@ -720,12 +720,20 @@ const importarExcelCompleto = async (req, res) => {
       if (!marcaIdMap.has(codMarca)) {
         const marcaIdInt = parseInt(codMarca, 10);
         if (Number.isNaN(marcaIdInt)) continue;
-          let marcaExists = await execWithDebug(`SELECT TOP 1 MarcaID FROM Marca WHERE CodigoMarca = @p0`, [codMarca]);
+        // Buscar por CodigoMarca exacto O por el número sin ceros al frente (ej: "0170" → "170")
+        const codMarcaSinCeros = String(marcaIdInt);
+        let marcaExists = await execWithDebug(
+          `SELECT TOP 1 MarcaID FROM Marca WHERE CodigoMarca = @p0 OR CodigoMarca = @p1`,
+          [codMarca, codMarcaSinCeros]
+        );
 
         if (marcaExists.length === 0 && marcaDesc) {
+          // Búsqueda por nombre: acepta coincidencia exacta o que el nombre en DB
+          // empiece con el nombre del Excel (ej: Excel="BYD", DB="BYD AUTO")
           marcaExists = await execWithDebug(
-            `SELECT TOP 1 MarcaID FROM Marca WHERE LTRIM(RTRIM(Descripcion)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(@p0)) COLLATE Latin1_General_CI_AI`,
-            [marcaDesc]
+            `SELECT TOP 1 MarcaID FROM Marca WHERE LTRIM(RTRIM(Descripcion)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(@p0)) COLLATE Latin1_General_CI_AI
+             OR LTRIM(RTRIM(Descripcion)) COLLATE Latin1_General_CI_AI LIKE LTRIM(RTRIM(@p0)) + ' %' COLLATE Latin1_General_CI_AI`,
+            [marcaDesc, marcaDesc]
           );
         }
 
