@@ -309,10 +309,6 @@ exports.exportarPlantillaMaestra = async (req, res) => {
       return formatted;
     });
 
-    // Fila 1: números de columna (1..189), Fila 2: headers, Fila 3+: datos
-    const numberRow = TEMPLATE_HEADERS.map((_, i) => i + 1);
-    const aoa = [numberRow, TEMPLATE_HEADERS, ...dataRows];
-
     const wb = xl.utils.book_new();
     const ws = xl.utils.json_to_sheet(formattedData);
     xl.utils.book_append_sheet(wb, ws, 'Plantilla_Datos');
