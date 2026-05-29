@@ -555,20 +555,17 @@ const importarExcelAutos = async (req, res) => {
       if (!dbMarcaId) continue;
       const codigoAutodata = `${mod.codMarca}${mod.codModelo}`;
         const modExists = await db.queryWithParams(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, mod.codModelo]);
-      let modeloIdDb = null;
-      if (modExists.length === 0) {
-        const importador = null; // or from mod
-          const insertMod = await db.queryWithParams(`INSERT INTO Modelo (MarcaID, CodigoModelo, CodigoAutodata, DescripcionModelo, Familia, CombustibleCodigo, CategoriaCodigo, Estado, Activo, ModificadoPorID, PrecioInicial) OUTPUT INSERTED.ModeloID VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, @p7, @p8)`, [dbMarcaId, mod.codModelo, codigoAutodata, mod.modeloDesc, mod.familiaDesc, mod.combustible, mod.categoria, usuarioId, mod.precio]);
-        if (insertMod && insertMod.length > 0) {
-           modeloIdDb = insertMod[0].ModeloID;
-           await db.queryWithParams(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'importado', 'Sistema')`, [modeloIdDb]);
-           creados.modelos++;
+      // Si el modelo ya existe, saltear completamente (no duplicar ni precio)
+      if (modExists.length > 0) continue;
+
+      const insertMod = await db.queryWithParams(`INSERT INTO Modelo (MarcaID, CodigoModelo, CodigoAutodata, DescripcionModelo, Familia, CombustibleCodigo, CategoriaCodigo, Estado, Activo, ModificadoPorID, PrecioInicial) OUTPUT INSERTED.ModeloID VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, @p7, @p8)`, [dbMarcaId, mod.codModelo, codigoAutodata, mod.modeloDesc, mod.familiaDesc, mod.combustible, mod.categoria, usuarioId, mod.precio]);
+      if (insertMod && insertMod.length > 0) {
+        const modeloIdDb = insertMod[0].ModeloID;
+        await db.queryWithParams(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'importado', 'Sistema')`, [modeloIdDb]);
+        creados.modelos++;
+        if (mod.precio != null && !isNaN(mod.precio)) {
+          await db.queryWithParams(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Precio importado Excel', GETDATE())`, [modeloIdDb, mod.precio]);
         }
-      } else {
-         modeloIdDb = modExists[0].ModeloID;
-      }
-      if (modeloIdDb && mod.precio != null && !isNaN(mod.precio)) {
-         await db.queryWithParams(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Precio importado Excel', GETDATE())`, [modeloIdDb, mod.precio]);
       }
     }
     return res.json({ success: true, message: 'Importación completada', data: { creados } });
@@ -690,6 +687,15 @@ const importarExcelCompleto = async (req, res) => {
       const rawRow = dataRaw[rawRowIndex + 2] || [];
       rawRowIndex++;
 
+      // Alias: Excel puede tener "Tablero Digital" (normKey "tablerodigital") que va a la columna DB Tablerodigital,
+      // pero el export lee TablerDigital. Si el Excel usó la variante larga, copiamos al normKey correcto.
+      if (normRow['tablerodigital'] !== undefined && normRow['tablerdigital'] === undefined) {
+        normRow['tablerdigital'] = normRow['tablerodigital'];
+      }
+      if (normRow['tablerodigital3d'] !== undefined && normRow['tablerdigital3d'] === undefined) {
+        normRow['tablerdigital3d'] = normRow['tablerodigital3d'];
+      }
+
       const codMarcaRaw = normRow['codigomarca'] || normRow['codmarca'] || row['Codigo_Marca'] || row['Codigo Marca'] || '';
       const codMarcaDigits = String(codMarcaRaw).replace(/\D+/g, '').trim();
       if (!codMarcaDigits) continue;
@@ -770,12 +776,9 @@ const importarExcelCompleto = async (req, res) => {
       const anioNum = toNum(normRow['año'] || normRow['anio'], 'int');
       // Col 7 "Categoria" in Excel = SegmentacionAutodata in DB (e.g. "SUV y CROSSOVER")
       const segmentoDesc = String(normRow['categoria'] || '').trim() || null;
-      // Col 188 "Tipo" (pos 187 base-0) = automóvil/comercial → Modelo.Tipo; rawRow[187] evita problemas de columnas duplicadas
+      // Col 188 "Tipo" (pos 187 base-0) → Modelo.Tipo; store literally so the form shows exactly what's in the Excel
       const tipoRaw = String(rawRow[187] != null ? rawRow[187] : (normRow['tipo'] || '')).trim();
-      const tipoNorm = tipoRaw.toLowerCase().replace(/[^a-z]/g, '');
-      const tipoDesc = tipoNorm.startsWith('autom') ? 'Automóvil'
-                     : tipoNorm.startsWith('com') ? 'Comercial'
-                     : tipoRaw || null;
+      const tipoDesc = tipoRaw || null;
       // carroceria comes from the TIPO2Carrocera column, NOT from "Tipo" which is automóvil/comercial
       const carroceriaDesc = String(normRow['tipo2carrocera'] || normRow['carrocería'] || normRow['carroceria'] || '').trim() || null;
       const origenDesc = String(normRow['origen'] || '').trim() || null;

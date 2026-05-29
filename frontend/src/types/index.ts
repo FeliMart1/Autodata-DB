@@ -244,7 +244,7 @@ export interface EquipamientoModelo {
   AsientoElectricoCalefMasaje?: boolean;
   AsientosRango2y3?: string;
   Asiento2Mas1?: boolean;
-  ButacaElectrica?: boolean;
+  ButacaElectrica?: string;
   AsientoVentilado?: boolean;
   AsientosMasajeador?: number;
   ApoyabrazosDelantero?: boolean;

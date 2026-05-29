@@ -93,7 +93,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
     if (onChange) {
       onChange(newData);
     }
-  }, [modelo.ModeloID, modelo.Carroceria, modelo.Cilindros, modelo.HP]); // Depender de campos clave para detectar actualizaciones
+  }, [modelo.ModeloID, modelo.Carroceria, modelo.Cilindros, modelo.HP, modelo.Tipo]); // Depender de campos clave para detectar actualizaciones
 
   const handleChange = (field: keyof Modelo, value: string | number | undefined) => {
     const newData = { ...formData, [field]: value };
