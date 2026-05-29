@@ -400,16 +400,14 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 <label className="block text-sm font-medium mb-1">
                   Categoría de Vehículo
                 </label>
-                <select
-                  value={normalizeTipo(formData.Tipo as string) || ''}
+                <input
+                  type="text"
+                  value={formData.Tipo || ''}
                   onChange={(e) => handleChange('Tipo', e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   disabled={readonly}
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="Automóvil">Automóvil</option>
-                  <option value="Comercial">Comercial</option>
-                </select>
+                  placeholder="Ej: AUTOMOVIL, COMERCIAL"
+                />
               </div>
             </div>
           </div>
