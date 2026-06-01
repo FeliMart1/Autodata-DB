@@ -32,7 +32,7 @@ export function ModeloDetailView({ modelo }: ModeloDetailViewProps) {
             <InfoRow label="Familia" value={modelo.Familia} />
             <InfoRow label="Modelo" value={modelo.Modelo || modelo.DescripcionModelo} />
             <InfoRow label="Combustible" value={modelo.CombustibleCodigo} />
-            <InfoRow label="Categoría de Vehículo" value={modelo.CategoriaVehiculo || modelo.categoria || modelo.CategoriaCodigo || modelo.categoria} />
+            <InfoRow label="Categoría de Vehículo" value={modelo.Tipo} />
           </dl>
         </CardContent>
       </Card>

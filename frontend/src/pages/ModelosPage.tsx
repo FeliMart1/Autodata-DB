@@ -129,17 +129,17 @@ export function ModelosPage() {
       ),
     },
     {
-      accessorKey: 'Anio',
-      header: 'Año',
+      accessorKey: 'CodigoMarca',
+      header: 'Cód. Marca',
       cell: ({ row }) => (
-        <span>{row.original.Anio || '-'}</span>
+        <span className="font-mono text-xs">{row.original.CodigoMarca || '-'}</span>
       ),
     },
     {
-      accessorKey: 'Combustible',
-      header: 'Combustible',
+      accessorKey: 'CodigoModelo',
+      header: 'Cód. Modelo',
       cell: ({ row }) => (
-        <span>{row.original.CombustibleCodigo || '-'}</span>
+        <span className="font-mono text-xs">{row.original.CodigoModelo || '-'}</span>
       ),
     },
     {

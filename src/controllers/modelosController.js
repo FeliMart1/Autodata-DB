@@ -40,7 +40,7 @@ exports.getAll = async (req, res) => {
     if (anio) whereConditions.push(`m.Anio = ${anio}`);
     if (tipo) whereConditions.push(`m.Tipo = N'${tipo}'`);
     if (search) {
-      whereConditions.push(`(m.DescripcionModelo LIKE N'%${search}%' OR m.Familia LIKE N'%${search}%' OR mar.Descripcion LIKE N'%${search}%')`);
+      whereConditions.push(`(m.DescripcionModelo LIKE N'%${search}%' OR m.Familia LIKE N'%${search}%' OR mar.Descripcion LIKE N'%${search}%' OR m.CodigoModelo LIKE N'%${search}%' OR mar.CodigoMarca LIKE N'%${search}%' OR m.CodigoAutodata LIKE N'%${search}%')`);
     }
     
     const whereClause = whereConditions.join(' AND ');
@@ -558,12 +558,12 @@ exports.deletePermanente = async (req, res) => {
     }
 
     // Verificar que el modelo existe
-    const modelo = await db.queryRaw(`SELECT ModeloID, Descripcion FROM Modelo WHERE ModeloID = ${idNum}`);
+    const modelo = await db.queryRaw(`SELECT ModeloID, DescripcionModelo FROM Modelo WHERE ModeloID = ${idNum}`);
     if (modelo.length === 0) {
       return res.status(404).json({ success: false, message: 'Modelo no encontrado' });
     }
 
-    const descripcion = modelo[0].Descripcion || `ID ${idNum}`;
+    const descripcion = modelo[0].DescripcionModelo || `ID ${idNum}`;
 
     // Borrar en cascada respetando FK
     await db.queryRaw(`DELETE FROM EquipamientoModelo WHERE ModeloID = ${idNum}`);

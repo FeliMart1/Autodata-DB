@@ -255,7 +255,9 @@ export function AgregarDatosPage() {
     return (
       m.DescripcionModelo?.toLowerCase().includes(searchLower) ||
       m.MarcaNombre?.toLowerCase().includes(searchLower) ||
-      m.CodigoAutodata?.includes(searchLower)
+      m.CodigoAutodata?.toLowerCase().includes(searchLower) ||
+      m.CodigoModelo?.toLowerCase().includes(searchLower) ||
+      m.CodigoMarca?.toLowerCase().includes(searchLower)
     );
   });
 

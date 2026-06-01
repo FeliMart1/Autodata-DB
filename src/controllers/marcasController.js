@@ -326,10 +326,12 @@ exports.importarExcel = async (req, res) => {
         continue;
       }
       
-      // INSERT con MarcaID explícito (tabla sin IDENTITY)
-      await db.queryRaw(
-        `INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) VALUES (${marcaIdInt}, '${marcod}', N'${mardsc.replace(/'/g, "''")}', N'${(origen || '').replace(/'/g, "''")}')`
-      );
+      // INSERT con MarcaID explícito (IDENTITY_INSERT requerido)
+      await db.querySequentialOnSingleConn([
+        `SET IDENTITY_INSERT Marca ON`,
+        `INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) VALUES (${marcaIdInt}, '${marcod}', N'${mardsc.replace(/'/g, "''")}', N'${(origen || '').replace(/'/g, "''")}')`,
+        `SET IDENTITY_INSERT Marca OFF`
+      ]);
       procesadas++;
     }
 

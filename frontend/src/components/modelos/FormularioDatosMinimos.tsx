@@ -93,7 +93,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
     if (onChange) {
       onChange(newData);
     }
-  }, [modelo.ModeloID, modelo.Carroceria, modelo.Cilindros, modelo.HP]); // Depender de campos clave para detectar actualizaciones
+  }, [modelo.ModeloID, modelo.Carroceria, modelo.Cilindros, modelo.HP, modelo.Tipo]); // Depender de campos clave para detectar actualizaciones
 
   const handleChange = (field: keyof Modelo, value: string | number | undefined) => {
     const newData = { ...formData, [field]: value };
@@ -398,19 +398,18 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Categoría de Vehículo
+                  Tipo
                 </label>
-                <select
+                <input
+                  type="text"
                   value={formData.Tipo || ''}
                   onChange={(e) => handleChange('Tipo', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 bg-white"
                   disabled={readonly}
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="Automóvil">Automóvil</option>
-                  <option value="Comercial">Comercial</option>
-                </select>
+                  placeholder="AUTOMOVIL / COMERCIAL"
+                />
               </div>
+
             </div>
           </div>
 
