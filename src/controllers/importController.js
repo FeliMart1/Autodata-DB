@@ -806,8 +806,13 @@ const importarExcelCompleto = async (req, res) => {
 
       const precioIniNum = precioNum; // initial load maps to base price as well
 
-      if (modExists.length === 0) {
-        const res = await execWithDebug(`
+      // Si el modelo ya existe, saltearlo completamente — NO sobreescribir
+      if (modExists.length > 0) {
+        creados.omitidos = (creados.omitidos || 0) + 1;
+        continue;
+      }
+
+      const insertRes = await execWithDebug(`
           INSERT INTO Modelo (
             MarcaID, DescripcionModelo, CodigoModelo, CodigoAutodata, Familia,
             FamiliaID,
@@ -834,34 +839,9 @@ const importarExcelCompleto = async (req, res) => {
             tipoDesc
           ]
         );
-        modeloIdDb = res[0].ModeloID;
-        creados.modelos++;
-
-        // Add history log explicitly
-        await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'definitivo', 'ImportacionMasiva')`, [modeloIdDb]);
-      } else {
-        modeloIdDb = modExists[0].ModeloID;
-        await execWithDebug(`
-          UPDATE Modelo SET
-            DescripcionModelo = @p0, CodigoAutodata = @p1, Familia = @p2,
-            FamiliaID = @p3,
-            Anio = @p4, SegmentacionAutodata = @p5, Carroceria = @p6, OrigenCodigo = @p7, Importador = @p8,
-            TipoMotor = @p9, TipoVehiculoElectrico = @p10, TipoCajaAut = @p11, CC = @p12, HP = @p13,
-            Cilindros = @p14, Valvulas = @p15, Puertas = @p16, Asientos = @p17, PrecioInicial = @p18, CombustibleCodigo = @p19,
-            Tipo = @p20,
-            Estado = 'definitivo'
-          WHERE ModeloID = @p21`,
-          [
-            modeloDesc, codigoAutodata, familiaDesc,
-            familiaId,
-            anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc,
-            tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum,
-            cilindrosNum, valvulasNum, puertasNum, asientosNum, precioIniNum, combDesc,
-            tipoDesc,
-            modeloIdDb
-          ]
-        );
-      }
+      modeloIdDb = insertRes[0].ModeloID;
+      creados.modelos++;
+      await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'definitivo', 'ImportacionMasiva')`, [modeloIdDb]);
 
       if (!modeloIdDb) continue;
 
