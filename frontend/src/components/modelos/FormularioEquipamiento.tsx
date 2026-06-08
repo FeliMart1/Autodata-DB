@@ -364,12 +364,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tipo de Caja Aut.</label>
-                <select disabled={readonly} value={(formData['TipoCajaAut'] as string | number) || ''} onChange={(e) => { handleChange('TipoCajaAut', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white">
-                  <option value="">Seleccionar...</option>
-                  <option value="Automática">Automática</option>
-                  <option value="Manual">Manual</option>
-                  <option value="No">No</option>
-                </select>
+                <input type="text" disabled={readonly} value={(formData['TipoCajaAut'] as string) || ''} onChange={(e) => { handleChange('TipoCajaAut', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" placeholder="CVT, DCT, Conv. de Par..." />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -528,7 +523,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Tablero digital</label>
-                <input type="checkbox" disabled={readonly} checked={(formData['Tablerodigital'] as boolean) || false} onChange={(e) => handleChange('Tablerodigital', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+                <input type="number" min="0" disabled={readonly} value={(formData['TablerDigital'] as string | number) ?? ''} onChange={(e) => { handleChange('TablerDigital', e.target.value === '' ? undefined : parseInt(e.target.value, 10)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step={1} onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Computadora</label>
@@ -665,8 +660,8 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
                 <input type="checkbox" disabled={readonly} checked={(formData['DVD'] as boolean) || false} onChange={(e) => handleChange('DVD', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Mirror Screen - Smartphone Display          </label>
-                <input type="checkbox" disabled={readonly} checked={(formData['MirrorScreenSmartphoneDisplay'] as boolean) || false} onChange={(e) => handleChange('MirrorScreenSmartphoneDisplay', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Mirror Screen</label>
+                <input type="checkbox" disabled={readonly} checked={(formData['MirrorScreen'] as boolean) || false} onChange={(e) => handleChange('MirrorScreen', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Sist. Multimedia</label>
@@ -717,8 +712,8 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
                 <input type="checkbox" disabled={readonly} checked={(formData['asiento21'] as boolean) || false} onChange={(e) => handleChange('asiento21', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-700 leading-tight break-words">But. Electr.</label>
-                <input type={'number'} disabled={readonly} value={(formData['ButElectr'] as string | number) || ''} onChange={(e) => { handleChange('ButElectr', e.target.value === '' ? undefined : parseFloat(e.target.value)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step={1} onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }} />
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Butacas Eléctricas</label>
+                <input type="text" disabled={readonly} value={(formData['ButacaElectrica'] as string) || ''} onChange={(e) => { handleChange('ButacaElectrica', e.target.value); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" placeholder="Si / No / 2" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Techo</label>
@@ -805,6 +800,10 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
                   <option value="Foot-control">Foot-control</option>
                   <option value="No">No</option>
                 </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 leading-tight break-words">Capacidad baúl (litros)</label>
+                <input type="number" min="0" disabled={readonly} value={(formData['CapacidadBaul'] as string | number) ?? ''} onChange={(e) => { handleChange('CapacidadBaul', e.target.value === '' ? undefined : parseInt(e.target.value, 10)); }} className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50" step={1} onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Protector CAJA</label>
