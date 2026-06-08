@@ -31,10 +31,10 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
     SegmentacionAutodata: modelo.SegmentacionAutodata || '',
     Carroceria: modelo.Carroceria || '',
     OrigenCodigo: modelo.OrigenCodigo || '',
-    Cilindros: modelo.Cilindros || undefined,
-    Valvulas: modelo.Valvulas || undefined,
-    CC: modelo.CC || undefined,
-    HP: modelo.HP || undefined,
+    Cilindros: modelo.Cilindros ?? undefined,
+    Valvulas: modelo.Valvulas ?? undefined,
+    CC: modelo.CC ?? undefined,
+    HP: modelo.HP ?? undefined,
     TipoCajaAut: modelo.TipoCajaAut || '',
     Tipo: normalizeTipo(modelo.Tipo),
     Puertas: modelo.Puertas || undefined,
@@ -72,10 +72,10 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
       SegmentacionAutodata: modelo.SegmentacionAutodata || '',
       Carroceria: modelo.Carroceria || '',
       OrigenCodigo: modelo.OrigenCodigo || '',
-      Cilindros: modelo.Cilindros || undefined,
-      Valvulas: modelo.Valvulas || undefined,
-      CC: modelo.CC || undefined,
-      HP: modelo.HP || undefined,
+      Cilindros: modelo.Cilindros ?? undefined,
+      Valvulas: modelo.Valvulas ?? undefined,
+      CC: modelo.CC ?? undefined,
+      HP: modelo.HP ?? undefined,
       TipoCajaAut: modelo.TipoCajaAut || '',
       Tipo: normalizeTipo(modelo.Tipo),
       Puertas: modelo.Puertas || undefined,
@@ -307,8 +307,8 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 <input
                   type="number"
                   onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
-                  value={formData.Cilindros || ''}
-                  onChange={(e) => handleChange('Cilindros', parseInt(e.target.value) || undefined)}
+                  value={formData.Cilindros ?? ''}
+                  onChange={(e) => handleChange('Cilindros', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
@@ -325,8 +325,8 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 <input
                   type="number"
                   onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
-                  value={formData.Valvulas || ''}
-                  onChange={(e) => handleChange('Valvulas', parseInt(e.target.value) || undefined)}
+                  value={formData.Valvulas ?? ''}
+                  onChange={(e) => handleChange('Valvulas', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
@@ -343,8 +343,8 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                 <input
                   type="number"
                   onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
-                  value={formData.CC || ''}
-                  onChange={(e) => handleChange('CC', parseInt(e.target.value) || undefined)}
+                  value={formData.CC ?? ''}
+                  onChange={(e) => handleChange('CC', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
