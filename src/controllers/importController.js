@@ -523,8 +523,9 @@ const importarExcelAutos = async (req, res) => {
     }
 
     const usuarioId = req.user ? req.user.UsuarioID || req.user.id || 1 : 1;
-    let creados = { marcas: 0, modelos: 0 };
+    let creados = { marcas: 0, modelos: 0, familias: 0 };
     const marcaIdMap = new Map();
+    const familiaIdMap = new Map();
     for (const mod of modelosArray) {
       if (!marcaIdMap.has(mod.codMarca)) {
          const marcaIdInt = parseInt(mod.codMarca, 10);
@@ -553,12 +554,44 @@ const importarExcelAutos = async (req, res) => {
       }
       const dbMarcaId = marcaIdMap.get(mod.codMarca);
       if (!dbMarcaId) continue;
+
+      // Resolver FamiliaID: buscar o crear el registro en tabla Familia
+      let familiaId = null;
+      if (mod.familiaDesc) {
+        const familiaKey = `${dbMarcaId}|${mod.familiaDesc.toLowerCase()}`;
+        if (familiaIdMap.has(familiaKey)) {
+          familiaId = familiaIdMap.get(familiaKey);
+        } else {
+          try {
+            const famExists = await db.queryWithParams(
+              `SELECT TOP 1 FamiliaID FROM Familia WHERE MarcaID = @p0 AND LTRIM(RTRIM(Nombre)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(@p1)) COLLATE Latin1_General_CI_AI`,
+              [dbMarcaId, mod.familiaDesc]
+            );
+            if (famExists.length > 0) {
+              familiaId = famExists[0].FamiliaID;
+            } else {
+              const famInsert = await db.queryWithParams(
+                `INSERT INTO Familia (MarcaID, Nombre, Activo, FechaCreacion) OUTPUT INSERTED.FamiliaID VALUES (@p0, @p1, 1, GETDATE())`,
+                [dbMarcaId, mod.familiaDesc]
+              );
+              if (famInsert && famInsert.length > 0) {
+                familiaId = famInsert[0].FamiliaID;
+                creados.familias++;
+              }
+            }
+            if (familiaId) familiaIdMap.set(familiaKey, familiaId);
+          } catch(famErr) {
+            logger.warn(`Error resolviendo familia "${mod.familiaDesc}" para MarcaID=${dbMarcaId}: ${famErr.message}`);
+          }
+        }
+      }
+
       const codigoAutodata = `${mod.codMarca}${mod.codModelo}`;
-        const modExists = await db.queryWithParams(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, mod.codModelo]);
+      const modExists = await db.queryWithParams(`SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`, [codigoAutodata, dbMarcaId, mod.codModelo]);
       // Si el modelo ya existe, saltear completamente (no duplicar ni precio)
       if (modExists.length > 0) continue;
 
-      const insertMod = await db.queryWithParams(`INSERT INTO Modelo (MarcaID, CodigoModelo, CodigoAutodata, DescripcionModelo, Familia, CombustibleCodigo, CategoriaCodigo, Estado, Activo, ModificadoPorID, PrecioInicial) OUTPUT INSERTED.ModeloID VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, 'importado', 1, @p7, @p8)`, [dbMarcaId, mod.codModelo, codigoAutodata, mod.modeloDesc, mod.familiaDesc, mod.combustible, mod.categoria, usuarioId, mod.precio]);
+      const insertMod = await db.queryWithParams(`INSERT INTO Modelo (MarcaID, CodigoModelo, CodigoAutodata, DescripcionModelo, Familia, FamiliaID, CombustibleCodigo, CategoriaCodigo, Estado, Activo, ModificadoPorID, PrecioInicial) OUTPUT INSERTED.ModeloID VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, 'importado', 1, @p8, @p9)`, [dbMarcaId, mod.codModelo, codigoAutodata, mod.modeloDesc, mod.familiaDesc, familiaId, mod.combustible, mod.categoria, usuarioId, mod.precio]);
       if (insertMod && insertMod.length > 0) {
         const modeloIdDb = insertMod[0].ModeloID;
         await db.queryWithParams(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'importado', 'Sistema')`, [modeloIdDb]);
