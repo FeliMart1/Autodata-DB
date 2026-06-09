@@ -335,12 +335,16 @@ const procesarBatch = async (req, res) => {
 
         let marcaId;
         if (!marca || marca.length === 0) {
-          // Crear nueva marca
+          // Marca.MarcaID no tiene IDENTITY: hay que asignar el ID manualmente.
+          // Usamos MAX(MarcaID)+1 para no colisionar con los IDs del import Excel (MARCOD).
+          const nextIdResult = await db.queryRaw('SELECT ISNULL(MAX(MarcaID), 0) + 1 AS NextID FROM Marca');
+          const nextMarcaId = nextIdResult[0].NextID;
           const nuevaMarca = await db.insert('Marca', {
+            MarcaID: nextMarcaId,
             CodigoMarca: reg.marca.substring(0, 10).toUpperCase(),
             Descripcion: reg.marca,
             ShortName: reg.marca,
-            Origen: reg.origen
+            Origen: reg.origen || null
           });
           marcaId = nuevaMarca.MarcaID;
           logger.info(`Nueva marca creada: ${reg.marca} (ID: ${marcaId})`);
@@ -349,17 +353,9 @@ const procesarBatch = async (req, res) => {
         }
 
         // 2. Crear/actualizar modelo
-        // Build modeloData mapping minimal fields from the staged row. Use flexible header names present in CSV.
-        // We'll set Estado to 'definitivo' by default per requested workflow and look up the EstadoID from DB.
-        const estadoDefinitivo = 'definitivo';
-        let estadoIdDefinitivo = 1; // fallback if lookup fails
-        try {
-          const estadoRow = await db.queryWithParams("SELECT EstadoID FROM ModeloEstado WHERE LOWER(NombreEstado) = LOWER(@p0)", [estadoDefinitivo]);
-          if (estadoRow && estadoRow.length > 0) estadoIdDefinitivo = estadoRow[0].EstadoID;
-        } catch (e) {
-          logger.warn('No se pudo obtener EstadoID definitivo, usando 1 como fallback', e.message);
-        }
-
+        // Build modeloData mapping minimal fields from the staged row.
+        // Estado se guarda como texto ('importado') — EstadoID no se usa porque
+        // EstadoCatalogo es una tabla de referencia que no se seedea ni se consume en el flujo real.
         const modeloData = {
           MarcaID: marcaId,
           CodigoModelo: `${reg.marca.substring(0, 3).toUpperCase()}-${String(reg.modelo || '').substring(0, 10).toUpperCase()}`,
@@ -380,9 +376,8 @@ const procesarBatch = async (req, res) => {
           Pasajeros: reg.pasajeros ? parseInt(reg.pasajeros) : (reg.Pasajeros ? parseInt(reg.Pasajeros) : null),
           Importador: reg.importador || reg.Importador || null,
           CodigoAutodata: reg.codigoautodata || reg.CodigoAutodata || null,
-          Origen: reg.origen || null,
-          Estado: estadoDefinitivo,
-          EstadoID: estadoIdDefinitivo
+          // NOTA: 'Origen' no existe como columna en Modelo. El origen va en OrigenCodigo (arriba).
+          Estado: 'importado'
         };
 
         // Ensure CodigoAutodata does not exceed DB length: try to query COLUMN property length if possible

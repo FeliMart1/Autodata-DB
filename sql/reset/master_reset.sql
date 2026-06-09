@@ -775,6 +775,14 @@ CREATE NONCLUSTERED INDEX IX_Staging_Batch  ON stg.Claudio_Modelos(load_batch_id
 CREATE NONCLUSTERED INDEX IX_Staging_Status ON stg.Claudio_Modelos(load_status);
 GO
 
+-- FK diferida: AuditoriaAcceso.UsuarioID → Usuario (se agrega aquí porque
+-- AuditoriaAcceso se crea antes que Usuario para respetar el orden del script)
+ALTER TABLE [dbo].[AuditoriaAcceso]
+    ADD CONSTRAINT FK_AuditoriaAcceso_Usuario
+    FOREIGN KEY ([UsuarioID]) REFERENCES [dbo].[Usuario]([UsuarioID])
+    ON DELETE SET NULL;
+GO
+
 PRINT 'Todas las tablas creadas correctamente.';
 PRINT '';
 
@@ -854,43 +862,45 @@ GROUP BY
 GO
 
 -- Vista detalle de modelo (para reportes / exports)
+-- NOTA: No incluye columnas de EquipamientoModelo para evitar duplicados de ModeloID.
+--       Los datos de equipamiento se obtienen directamente de EquipamientoModelo si se precisan.
 CREATE VIEW [dbo].[VistaModeloDetalle] AS
 SELECT
     m.ModeloID,
     m.MarcaID,
-    mar.Descripcion  AS Marca,
-    mar.CodigoMarca  AS MARCOD,
-    m.CodigoModelo   AS MARMODCOD,
+    mar.Descripcion       AS Marca,
+    mar.CodigoMarca       AS MARCOD,
+    m.CodigoModelo        AS MARMODCOD,
     m.CodigoAutodata,
-    m.DescripcionModelo AS Modelo,
+    m.DescripcionModelo   AS Modelo,
     m.Familia,
     m.FamiliaID,
     m.Activo,
     m.Anio,
-    m.PrecioInicial  AS PrecioBase,
-    m.OrigenCodigo   AS Origen,
+    m.PrecioInicial       AS PrecioBase,
+    m.OrigenCodigo        AS Origen,
     m.Importador,
     m.Carroceria,
     m.SegmentacionAutodata AS Segmento,
     m.TipoMotor,
     m.TipoVehiculoElectrico,
     m.TipoCajaAut,
-    m.CC             AS Cilindrada,
-    m.HP             AS Potencia,
+    m.CC                  AS Cilindrada,
+    m.HP                  AS Potencia,
     m.Cilindros,
     m.Valvulas,
     m.Puertas,
     m.Asientos,
-    m.CombustibleCodigo AS Combustible,
+    m.CombustibleCodigo   AS Combustible,
     m.Tipo,
     m.Estado,
+    m.FechaCreacion,
+    m.FechaModificacion,
     (SELECT TOP 1 Precio FROM PrecioModelo p
      WHERE p.ModeloID = m.ModeloID
-     ORDER BY p.FechaVigenciaDesde DESC, p.FechaCarga DESC) AS PrecioActual,
-    eq.*
+     ORDER BY p.FechaVigenciaDesde DESC, p.FechaCarga DESC) AS PrecioActual
 FROM Modelo m
-INNER JOIN Marca            mar ON m.MarcaID  = mar.MarcaID
-LEFT  JOIN EquipamientoModelo eq ON m.ModeloID = eq.ModeloID;
+INNER JOIN Marca mar ON m.MarcaID = mar.MarcaID;
 GO
 
 PRINT 'Vistas creadas.';
