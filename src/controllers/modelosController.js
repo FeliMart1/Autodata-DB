@@ -458,16 +458,39 @@ exports.update = async (req, res) => {
       }
     }
     
+    // Auto-resolver FamiliaID: si el modelo tiene Familia texto pero FamiliaID null, sincronizarlo ahora
+    // Esto cubre el caso de modelos importados via importarExcelAutos que no resolvían FamiliaID
+    const modeloActual = modeloExistente[0];
+    const nuevaFamilia = datosActualizacion.Familia || datosActualizacion.familia;
+    const familiaYaEnPayload = nuevaFamilia !== undefined;
+    if (!familiaYaEnPayload && modeloActual.FamiliaID == null && modeloActual.Familia) {
+      const nombreFamilia = String(modeloActual.Familia).trim();
+      const marcaIdTarget = modeloActual.MarcaID;
+      try {
+        const checkFam = await db.queryRaw(`SELECT FamiliaID FROM Familia WHERE MarcaID = ${marcaIdTarget} AND LTRIM(RTRIM(Nombre)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(N'${nombreFamilia.replace(/'/g, "''")}')) COLLATE Latin1_General_CI_AI`);
+        if (checkFam && checkFam.length > 0) {
+          setClauses.push(`FamiliaID = ${checkFam[0].FamiliaID}`);
+        } else {
+          const insertFam = await db.queryRaw(`INSERT INTO Familia (MarcaID, Nombre, Activo, FechaCreacion) OUTPUT INSERTED.FamiliaID VALUES (${marcaIdTarget}, N'${nombreFamilia.replace(/'/g, "''")}', 1, GETDATE())`);
+          if (insertFam && insertFam.length > 0) {
+            setClauses.push(`FamiliaID = ${insertFam[0].FamiliaID}`);
+          }
+        }
+      } catch(e) {
+        logger.error('Error auto-resolviendo FamiliaID en update:', e);
+      }
+    }
+
     if (setClauses.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'No hay datos para actualizar'
       });
     }
-    
+
     // Ejecutar actualización
     const updateQuery = `
-      UPDATE Modelo 
+      UPDATE Modelo
       SET ${setClauses.join(', ')}
       WHERE ModeloID = ${id}
     `;
