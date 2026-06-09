@@ -126,27 +126,13 @@ exports.create = async (req, res) => {
       `);
       logger.info(`Marca existente actualizada (ID: ${resultMarcaId})`);
     } else {
-      // Insertar nueva marca con explícito MarcaID (IDENTITY_INSERT)
-      try {
-        await db.queryRaw(`
-          SET IDENTITY_INSERT Marca ON;
-          INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) 
-          VALUES (${marcaIdInt}, '${normCod}', N'${marca.trim()}', ${paisOrigen && paisOrigen.trim() ? `N'${paisOrigen.trim()}'` : 'NULL'});
-          SET IDENTITY_INSERT Marca OFF;
-        `);
-        resultMarcaId = marcaIdInt;
-        logger.info(`Marca creada con explícito ID: ${resultMarcaId} y CodigoMarca: ${normCod}`);
-      } catch (err) {
-        // Fallback en caso de que falle IDENTITY_INSERT (e.g. permisos)
-        await db.queryRaw(`SET IDENTITY_INSERT Marca OFF;`);
-        const instRes = await db.queryRaw(`
-          INSERT INTO Marca (CodigoMarca, Descripcion, Origen) 
-          OUTPUT INSERTED.MarcaID
-          VALUES ('${normCod}', N'${marca.trim()}', ${paisOrigen && paisOrigen.trim() ? `N'${paisOrigen.trim()}'` : 'NULL'})
-        `);
-        resultMarcaId = instRes[0].MarcaID;
-        logger.info(`Marca creada con ID generado: ${resultMarcaId} por fallback de IDENTITY_INSERT`);
-      }
+      // Insertar nueva marca con MarcaID explícito (columna no-IDENTITY, INSERT directo)
+      await db.queryRaw(`
+        INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) 
+        VALUES (${marcaIdInt}, '${normCod}', N'${marca.trim()}', ${paisOrigen && paisOrigen.trim() ? `N'${paisOrigen.trim()}'` : 'NULL'})
+      `);
+      resultMarcaId = marcaIdInt;
+      logger.info(`Marca creada con ID: ${resultMarcaId} y CodigoMarca: ${normCod}`);
     }
 
     // Obtener la marca creada/actualizada
@@ -326,12 +312,10 @@ exports.importarExcel = async (req, res) => {
         continue;
       }
       
-      // INSERT con MarcaID explícito (IDENTITY_INSERT requerido)
-      await db.querySequentialOnSingleConn([
-        `SET IDENTITY_INSERT Marca ON`,
+      // INSERT con MarcaID explícito (columna no-IDENTITY, INSERT directo)
+      await db.queryRaw(
         `INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) VALUES (${marcaIdInt}, '${marcod}', N'${mardsc.replace(/'/g, "''")}', N'${(origen || '').replace(/'/g, "''")}')`,
-        `SET IDENTITY_INSERT Marca OFF`
-      ]);
+      );
       procesadas++;
     }
 
