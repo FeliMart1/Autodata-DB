@@ -23,7 +23,13 @@ exports.getByModeloId = async (req, res) => {
     columnsQuery.forEach(col => {
       // Default to null or false depending on bit type
       const defaultVal = col.DATA_TYPE === 'bit' ? false : null;
-      data[col.COLUMN_NAME] = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
+      let val = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
+      // msnodesqlv8 devuelve columnas BIT como 1/0 (número) en lugar de true/false (booleano).
+      // Normalizamos aquí para que el frontend siempre reciba true/false.
+      if (col.DATA_TYPE === 'bit' && val !== null && val !== undefined) {
+        val = val === 1 || val === true;
+      }
+      data[col.COLUMN_NAME] = val;
     });
 
     // Si existe data en formato JSON dentro de OtrosDatos, la parseamos

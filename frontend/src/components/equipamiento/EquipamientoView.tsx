@@ -31,24 +31,26 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     }
   };
 
-  const BooleanBadge = ({ value }: { value: boolean }) => {
-    // Treat string 'No' or false as false, 'Si' 'N/A' etc accordingly
-    if (value === true || value === 'Si' || value === 'Sí') {
+  const BooleanBadge = ({ value }: { value: any }) => {
+    // Acepta boolean true/false, número 1/0, o strings 'Si'/'No'/'N/A'
+    if (value === true || value === 1 || value === 'Si' || value === 'Sí') {
         return <Badge variant="success" className="gap-1 bg-green-500 hover:bg-green-600"><CheckCircle2 className="h-3 w-3" /> Sí</Badge>;
     }
-    if (value === false || value === 'No') {
+    if (value === false || value === 0 || value === 'No') {
         return <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" /> No</Badge>;
     }
     if (value === 'N/A' || value === 'N/D') {
         return <Badge variant="outline" className="gap-1 border-slate-300 text-slate-500">{value}</Badge>;
     }
-    return <></>; // Won't be reached usually
+    return <></>;
   };
 
   const InfoRow = ({ label, value }: { label: string; value: any }) => {
     if (value === null || value === undefined || value === '') return null; // Don't show empty fields
 
-    const isBooleanish = value === true || value === false || value === 'Si' || value === 'No' || value === 'Sí' || value === 'N/A';
+    // Incluye 1/0 numéricos que devuelve msnodesqlv8 para columnas BIT
+    const isBooleanish = value === true || value === false || value === 1 || value === 0
+      || value === 'Si' || value === 'No' || value === 'Sí' || value === 'N/A';
     
     return (
       <div className="flex items-center justify-between py-2 border-b border-slate-100 last:border-b-0">
@@ -80,15 +82,16 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Equipamiento del VehÃ­culo</CardTitle>
+          <CardTitle>Equipamiento del Vehículo</CardTitle>
         </CardHeader>
         <CardContent>
           <Alert>
             <div className="space-y-2">
-              <p className="font-medium">No hay equipamiento cargado para este modelo</p>   
+              <p className="font-medium">No hay equipamiento cargado para este modelo</p>
               <p className="text-sm text-muted-foreground">
-                El equipamiento se carga en la fase correspondiente del flujo de trabajo.   
-                Una vez completados los datos mÃ­nimos y aprobados, podrÃ¡s cargar los campos de equipamiento.                                                                                        </p>
+                El equipamiento se carga en la fase correspondiente del flujo de trabajo.
+                Una vez completados los datos mínimos y aprobados, podrás cargar los campos de equipamiento.
+              </p>
             </div>
           </Alert>
         </CardContent>
@@ -99,9 +102,146 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
   // Helper to split object into sensible chunks
   const keys = Object.keys(equipamiento).filter(k => !['EquipamientoID', 'ModeloID', 'FechaCreacion', 'FechaModificacion', 'OtrosDatos'].includes(k));
   
-  // Format a key like 'AsientoConductorElectrico' to 'Asiento Conductor Electrico'
+  // Mapa de claves DB → etiqueta legible en la vista
   const labelMap: Record<string, string> = {
-    Caja: "Tipo de Caja Autom\u00e1tica",
+    Caja: "Tipo de Caja Automática",
+    TablerDigital: "Tablero Digital",
+    TablerDigital3D: "Tablero Digital 3D",
+    ABAG: "Airbags",
+    SRI: "Sistema Retención Infantil",
+    ABS: "ABS",
+    EBD_EBV_REF: "EBD / EBV / REF",
+    ESP_ControlEstabilidad: "ESP / Control Estabilidad",
+    GPS: "GPS",
+    USB: "USB",
+    MP3: "MP3",
+    CD: "CD",
+    DVD: "DVD",
+    TPMS: "TPMS (sensor presión neumáticos)",
+    CO2_g_km: "CO₂ (g/km)",
+    EPedal: "E-Pedal",
+    KgPorHP: "Kg/HP",
+    DistanciaEjes: "Distancia entre ejes (mm)",
+    PesoOrdenMarcha: "Peso orden de marcha (kg)",
+    DiametroLlantas: "Diámetro llantas (pulgadas)",
+    KitInflableAntiPinchazo: "Kit inflable anti-pinchazo",
+    RuedaAuxHomogenea: "Rueda auxiliar homogénea",
+    MarchasVelocidades: "Marchas / velocidades",
+    StartStop: "Start / Stop",
+    GarantiaAnios: "Garantía (años)",
+    GarantiaKm: "Garantía (km)",
+    GarantiasDiferenciales: "Garantías diferenciales",
+    TipoVehiculoElectrico: "Tipo vehículo eléctrico / híbrido",
+    CapacidadTanqueHidrogeno: "Capacidad tanque hidrógeno",
+    AutonomiaMaxRange: "Autonomía máxima (km)",
+    CicloNorma: "Ciclo / norma",
+    PotenciaMotor: "Potencia motor",
+    CapacidadOperativaBateria: "Capacidad operativa batería",
+    ParMotorTorque: "Par motor / torque",
+    PotenciaCargaMax: "Potencia de carga máxima",
+    TiposConectores: "Tipos de conectores",
+    GarantiaCapBat: "Garantía cap. batería",
+    TecnologiaBat: "Tecnología batería",
+    TiempoCarga: "Tiempo de carga",
+    CodigoFichaTecnica: "Código ficha técnica",
+    SistemaClimatizacion: "Sistema climatización",
+    TipoBloqueo: "Tipo de bloqueo",
+    KeylessSmartKey: "Keyless / Smart Key",
+    LevantaVidrios: "Levantavidrios",
+    EspejosElectricos: "Espejos eléctricos",
+    EspejoInteriorElectrocromado: "Espejo interior electrocromado",
+    EspejosAbatiblesElectricamente: "Espejos abatibles eléctricamente",
+    VolanteRevestidoCuero: "Volante revestido en cuero",
+    VelocidadCrucero: "Control de velocidad crucero",
+    FrenoEstacionamientoElectrico: "Freno de estacionamiento eléctrico",
+    AsistFrenadoDetectorDistancia: "Asist. frenado / detector distancia",
+    AsistPendiente: "Asistencia en pendiente",
+    DetectorCambioFila: "Detector cambio de fila",
+    DetectorPuntoCiego: "Detector punto ciego",
+    TrafficSignRecognition: "Reconocimiento señales de tráfico",
+    DriverAttentionControl: "Control atención del conductor",
+    GripControl: "Grip Control",
+    LimitadorVelocidad: "Limitador de velocidad",
+    AsistDescensoHDC: "Asistencia de descenso (HDC)",
+    PaddleShift: "Paddle Shift",
+    ComandoAudioVolante: "Comando audio en volante",
+    MirrorScreen: "Mirror Screen",
+    SistemaMultimedia: "Sistema multimedia",
+    PantallaMultimediaPulgadas: "Pantalla multimedia (pulgadas)",
+    PantallaTactil: "Pantalla táctil",
+    CargadorSmartphoneInduccion: "Cargador smartphone por inducción",
+    KitHiFi: "Kit HiFi",
+    NumeroAsientos: "Número de asientos",
+    AsientoElectricoCalefMasaje: "Asiento eléctrico / calef. / masaje",
+    AsientosRango2y3: "Asientos rango 2 y 3",
+    Asiento2Mas1: "Asiento 2+1",
+    ButacaElectrica: "Butaca eléctrica",
+    AsientoVentilado: "Asiento ventilado",
+    AsientosMasajeador: "Asientos con masajeador",
+    ApoyabrazosDelantero: "Apoyabrazos delantero",
+    ApoyabrazosCentralTrasero: "Apoyabrazos central trasero",
+    SoporteMusloDelantero: "Soporte de muslo delantero",
+    AsientoTraseroAjusteElectrico: "Asiento trasero ajuste eléctrico",
+    TerceraFilaAsientosElectricos: "3ra fila de asientos eléctricos",
+    TipoAlturaAsientoDelantero: "Tipo / altura asiento delantero",
+    SeatAdjustmentMemoryDriver: "Memoria asiento conductor",
+    SeatAdjustmentMemoryCoDriver: "Memoria asiento acompañante",
+    LumbarAdjustmentFrontDriver: "Ajuste lumbar conductor",
+    LumbarAdjustmentFrontCoDriver: "Ajuste lumbar acompañante",
+    SeatHeatingRear: "Calefacción asientos traseros",
+    TechoBiTono: "Techo bi-tono",
+    BarrasTecho: "Barras de techo",
+    NumeroTechosQueSeAbren: "Número de techos que se abren",
+    SensorEstacionamiento: "Sensor de estacionamiento",
+    SistemaAutomaticoEstacionamiento: "Sistema automático de estacionamiento",
+    FarosNeblina: "Faros de niebla",
+    FarosDireccionales: "Faros direccionales",
+    FarosFullLED: "Faros Full LED",
+    FarosHalogenosDRL_LED: "Faros halógenos / DRL LED",
+    FarosXenonLimpiadores: "Faros xenón / limpiadores",
+    PackVisibilidad: "Pack visibilidad",
+    PasoLucesCruzRutaAutomatica: "Paso de luces cruce/ruta automático",
+    VisionNocturna: "Visión nocturna",
+    FarosMatrix: "Faros Matrix",
+    LucesTraserasLED: "Luces traseras LED",
+    LucesTraserasOLED: "Luces traseras OLED",
+    MaleteraAperturaElectrica: "Maletero apertura eléctrica",
+    CapacidadBaul: "Capacidad baúl (L)",
+    CapacidadTanqueCombustible: "Capacidad tanque combustible (L)",
+    ProtectorCaja: "Protector de caja",
+    ParticionCabina: "Partición de cabina",
+    NumPuertasLaterales: "N° puertas laterales",
+    PuertaLateralElectrica: "Puerta lateral eléctrica",
+    CargaUtil_kg: "Carga útil (kg)",
+    VolumenUtil_m3: "Volumen útil (m³)",
+    TipoAlturaUL: "Tipo / altura carga útil",
+    CapacidadCargaCamiones: "Capacidad carga camiones",
+    AlertaTraficoCruzadoTrasero: "Alerta tráfico cruzado trasero",
+    AlertaTraficoCruzadoFrontal: "Alerta tráfico cruzado frontal",
+    FrenadoMulticolision: "Frenado multicolisión",
+    HeadUpDisplay: "Head Up Display",
+    CityStop: "City Stop",
+    FrenoPeatones: "Frenado peatones",
+    BloqueDiferencialTerreno: "Bloqueo diferencial por terreno",
+    DesempaniadorElectrico: "Desempañador eléctrico",
+    IluminacionAmbiental: "Iluminación ambiental",
+    LimpiaLavaParabrisasTrasero: "Limpia/lava parabrisas trasero",
+    BlackWheelFrame: "Black Wheel Frame",
+    VolanteMultifuncion: "Volante multifunción",
+    AceleracionBEV_0a100: "Aceleración BEV 0-100 km/h (s)",
+    AccelerationICE: "Aceleración ICE 0-100 km/h (s)",
+    CargaElectricaWireless: "Carga eléctrica wireless",
+    CargaElectricaInduccion: "Carga eléctrica por inducción",
+    CableElectricoTipo3Incluido: "Cable eléctrico tipo 3 incluido",
+    ChassisDriveSelect: "Chassis Drive Select",
+    ChassisSportSuspension: "Chassis suspensión sport",
+    DireccionCuatroRuedas: "Dirección en cuatro ruedas",
+    LucesLaser: "Luces láser",
+    DashboardDisplayConfigurable: "Dashboard display configurable",
+    WirelessSmartphoneIntegration: "Wireless smartphone integration",
+    MobilePhoneAntenna: "Antena teléfono móvil",
+    DeflectorViento: "Deflector de viento",
+    AsientosDeportivos: "Asientos deportivos",
   };
   const formatLabel = (key: string) => {
     if (labelMap[key]) return labelMap[key];
