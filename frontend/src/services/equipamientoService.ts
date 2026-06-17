@@ -4,7 +4,10 @@ import { EquipamientoModelo } from '@/types/index';
 export const equipamientoService = {
   getByModeloId: async (idModelo: number): Promise<EquipamientoModelo | null> => {
     const response = await apiClient.get(`/equipamiento/modelo/${idModelo}`);
-    return response.data?.data || response.data;
+    // El backend devuelve { success: true, data: null } cuando no existe registro.
+    // Usamos !== undefined para distinguir null (sin registro) de un objeto válido.
+    const data = response.data?.data;
+    return data !== undefined ? data : response.data;
   },
 
   create: async (data: Partial<EquipamientoModelo>): Promise<EquipamientoModelo> => {

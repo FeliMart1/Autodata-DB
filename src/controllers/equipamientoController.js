@@ -19,7 +19,15 @@ exports.getByModeloId = async (req, res) => {
     `;
 
     const equipamiento = await db.queryRaw(query);
-    let dbData = equipamiento[0] || {};
+
+    // Si no existe registro de equipamiento para este modelo, devolver null explícitamente.
+    // Antes se devolvían las 178 columnas con valores por defecto (false/null), lo que hacía
+    // que la vista mostrara ~100 campos "No" para modelos sin equipamiento cargado.
+    if (equipamiento.length === 0) {
+      return res.json({ success: true, data: null });
+    }
+
+    let dbData = equipamiento[0];
     
     // Auto-fill an empty object with all schema columns mapping them to null/false so the frontend knows they exist even if empty
     let data = {};

@@ -78,7 +78,9 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     );
   }
 
-  if (!equipamiento || Object.keys(equipamiento).length <= 1) {
+  // null = no existe registro en DB (modelo importado sin equipamiento cargado aún)
+  // objeto sin EquipamientoID = caso legacy, tratar igual
+  if (!equipamiento || !equipamiento.EquipamientoID) {
     return (
       <Card>
         <CardHeader>
