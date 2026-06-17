@@ -7,7 +7,10 @@ exports.getByModeloId = async (req, res) => {
     const { modeloId } = req.params;
 
     // Get all columns of the EquipamientoModelo table
-    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo'");
+    // IMPORTANTE: filtrar a ORDINAL_POSITION <= 178 para excluir las ~98 columnas legacy
+    // (ej: Espejoselct, Tablerodigital, Controltraccin) añadidas por versiones antiguas del formulario.
+    // Las columnas canónicas del schema original van de 1 a 178 (hasta DistEjes).
+    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo' AND ORDINAL_POSITION <= 178");
     
     // Get actual data
     const query = `
@@ -16,23 +19,49 @@ exports.getByModeloId = async (req, res) => {
     `;
 
     const equipamiento = await db.queryRaw(query);
-    let dbData = equipamiento[0] || {};
+
+    // Si no existe registro de equipamiento para este modelo, devolver null explícitamente.
+    // Antes se devolvían las 178 columnas con valores por defecto (false/null), lo que hacía
+    // que la vista mostrara ~100 campos "No" para modelos sin equipamiento cargado.
+    if (equipamiento.length === 0) {
+      return res.json({ success: true, data: null });
+    }
+
+    let dbData = equipamiento[0];
     
     // Auto-fill an empty object with all schema columns mapping them to null/false so the frontend knows they exist even if empty
     let data = {};
     columnsQuery.forEach(col => {
       // Default to null or false depending on bit type
       const defaultVal = col.DATA_TYPE === 'bit' ? false : null;
-      data[col.COLUMN_NAME] = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
+      let val = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
+      // msnodesqlv8 devuelve columnas BIT como 1/0 (número) en lugar de true/false (booleano).
+      // Normalizamos aquí para que el frontend siempre reciba true/false.
+      if (col.DATA_TYPE === 'bit' && val !== null && val !== undefined) {
+        val = val === 1 || val === true;
+      }
+      data[col.COLUMN_NAME] = val;
     });
 
-    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos y mezclamos        
+    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos
+    // IMPORTANTE: solo se usa como fallback para columnas reales de la DB que estén en null.
+    // NO se agregan claves extra que no existan en el schema → evita duplicados en la vista
+    // (ej: "Espejoselct", "Espejoselect" vs "EspejosElectricos" que son la misma cosa con nombre distinto)
     if (data && data.OtrosDatos && typeof data.OtrosDatos === 'string') {
       const trimmed = data.OtrosDatos.trim();
       if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
         try {
           const extraData = JSON.parse(trimmed);
-          data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad 
+          const dbColumnSet = new Set(columnsQuery.map(col => col.COLUMN_NAME));
+          for (const [key, val] of Object.entries(extraData)) {
+            // Solo aplicar si la clave es una columna real de la DB
+            if (!dbColumnSet.has(key)) continue;
+            // Solo usar OtrosDatos como fallback si el valor en DB es null (DB tiene prioridad)
+            if (data[key] !== null) continue;
+            // No aplicar valores nulos/indefinidos de OtrosDatos
+            if (val === null || val === undefined) continue;
+            data[key] = val;
+          }
         } catch (e) {
           logger.warn('OtrosDatos no es JSON válido, se ignora el parseo:', data.OtrosDatos);
         }
@@ -53,9 +82,10 @@ exports.getByModeloId = async (req, res) => {
   }
 };
 
-// Funci\u00F3n de ayuda para obtener columnas
+// Función de ayuda para obtener columnas CANÓNICAS (ORDINAL_POSITION <= 178)
+// Excluye las ~98 columnas legacy añadidas por versiones antiguas del formulario
 const getDBColumns = async () => {
-    const cols = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EquipamientoModelo'");
+    const cols = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EquipamientoModelo' AND ORDINAL_POSITION <= 178");
     return cols.map(c => c.COLUMN_NAME);
 };
 
@@ -152,10 +182,21 @@ exports.update = async (req, res) => {
     const setClauses = [];
     const dbCols = await getDBColumns();
 
-    // Guardamos absolutamente todo el payload en la columna JSON para preservar TODOS los botones y textos 100% como los manda el cliente
+    // Solo guardamos en OtrosDatos las claves que NO tienen columna real en la DB.
+    // Guardar TODO en OtrosDatos provocaba que getByModeloId retornara claves duplicadas con nombres
+    // alternativos (ej: "Espejoselct" y "EspejosElectricos" a la vez).
     if (dbCols.includes('OtrosDatos')) {
-        const safeJson = JSON.stringify(equipamiento).replace(/'/g, "''");
+      const skipAlways = new Set(['ModeloID', 'EquipamientoID', 'FechaCreacion', 'FechaModificacion', 'FechaActualizacion', 'OtrosDatos']);
+      const extraKeys = Object.keys(equipamiento).filter(k => !dbCols.includes(k) && !skipAlways.has(k));
+      if (extraKeys.length > 0) {
+        const extraData = {};
+        extraKeys.forEach(k => { extraData[k] = equipamiento[k]; });
+        const safeJson = JSON.stringify(extraData).replace(/'/g, "''");
         setClauses.push(`OtrosDatos = '${safeJson}'`);
+      } else {
+        // Sin datos extra → limpiar OtrosDatos para eliminar residuos de versiones anteriores
+        setClauses.push(`OtrosDatos = NULL`);
+      }
     }
     
     // Tratamos de buscar la columna correcta de actualización segun version del SQL
