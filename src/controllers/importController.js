@@ -674,7 +674,16 @@ const descargarTemplateCompleto = async (req, res) => {
   }
 };
 
-const importarExcelCompleto = async (req, res) => {
+/**
+ * Núcleo compartido para procesar la Plantilla Maestra.
+ * opts permite reutilizar el mismo parseo/inserción para dos imports:
+ *   - Definitivo:     estado='definitivo',        carga equipamiento.
+ *   - Datos Mínimos:  estado='minimos_aprobados',  NO carga equipamiento (solo datos del modelo).
+ */
+const procesarPlantillaMaestra = async (req, res, opts = {}) => {
+  const estado = opts.estado || 'definitivo';
+  const historialUsuario = opts.historialUsuario || 'ImportacionMasiva';
+  const cargarEquipamiento = opts.cargarEquipamiento !== false; // default true
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'Archivo no proporcionado.' });
 
@@ -874,7 +883,7 @@ const importarExcelCompleto = async (req, res) => {
             @p11, @p12, @p13, @p14, @p15,
             @p16, @p17, @p18, @p19, @p20, @p21,
             @p22,
-            'definitivo', 1
+            @p23, 1
           )`,
           [
             dbMarcaId, modeloDesc, codModelo, codigoAutodata, familiaDesc,
@@ -882,12 +891,13 @@ const importarExcelCompleto = async (req, res) => {
             anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc,
             tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum,
             cilindrosNum, valvulasNum, puertasNum, asientosNum, precioIniNum, combDesc,
-            tipoDesc
+            tipoDesc,
+            estado
           ]
         );
       modeloIdDb = insertRes[0].ModeloID;
       creados.modelos++;
-      await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'definitivo', 'ImportacionMasiva')`, [modeloIdDb]);
+      await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, @p1, @p2)`, [modeloIdDb, estado, historialUsuario]);
 
       if (!modeloIdDb) continue;
 
@@ -901,6 +911,8 @@ const importarExcelCompleto = async (req, res) => {
       }
 
       // 4. EquipamientoModelo Upsert (dynamic payloads by DB column types)
+      // En el import de Datos Mínimos NO se carga equipamiento: solo los datos del modelo.
+      if (!cargarEquipamiento) continue;
       // "Tipo Caja Automática" (col 186) is the detailed gearbox description → EquipamientoModelo.Caja
       // "Caja" (col 26) is Automática/Manual for Modelo.TipoCajaAut only — exclude it from equipment
       const tipoCajaAutoVal = normRow['tipocajaautomática']; // 'á' = U+00E1
@@ -957,12 +969,22 @@ const importarExcelCompleto = async (req, res) => {
   }
 };
 
+// Import Definitivo: carga modelo + equipamiento + precio, estado 'definitivo'
+const importarExcelCompleto = (req, res) =>
+  procesarPlantillaMaestra(req, res, { estado: 'definitivo', historialUsuario: 'ImportacionMasiva', cargarEquipamiento: true });
+
+// Import de Datos Mínimos: mismo Excel/formato, carga solo los datos del modelo (sin equipamiento),
+// estado 'minimos_aprobados'
+const importarExcelMinimos = (req, res) =>
+  procesarPlantillaMaestra(req, res, { estado: 'minimos_aprobados', historialUsuario: 'ImportacionMinimos', cargarEquipamiento: false });
+
 module.exports = {
   upload,
   importarExcelAutos,
   importarExcelPrecios,
   importarCSV,
   importarExcelCompleto,
+  importarExcelMinimos,
   descargarTemplateCompleto,
   listarBatches,
   obtenerBatch,

@@ -588,10 +588,35 @@ exports.deletePermanente = async (req, res) => {
 
     const descripcion = modelo[0].DescripcionModelo || `ID ${idNum}`;
 
-    // Borrar en cascada respetando FK
-    await db.queryRaw(`DELETE FROM EquipamientoModelo WHERE ModeloID = ${idNum}`);
-    await db.queryRaw(`DELETE FROM PrecioModelo WHERE ModeloID = ${idNum}`);
-    await db.queryRaw(`DELETE FROM ModeloHistorial WHERE ModeloID = ${idNum}`);
+    // Borrar en cascada respetando las FK hacia Modelo.
+    // El esquema desplegado NO tiene ON DELETE CASCADE en todas las tablas hijas, así que
+    // hay que borrar manualmente cada hija antes del DELETE final de Modelo, o SQL Server
+    // rechaza el borrado por violación de FK (causa del error al eliminar como admin).
+    // safeDelete ignora solo el error de "tabla inexistente" (deployments con esquema parcial)
+    // y propaga cualquier otro error real.
+    const safeDelete = async (sql) => {
+      try {
+        await db.queryRaw(sql);
+      } catch (e) {
+        if (/Invalid object name|Cannot find the object|nombre de objeto no v[aá]lido/i.test(e.message)) {
+          logger.warn(`deletePermanente: tabla inexistente, se omite. ${e.message}`);
+        } else {
+          throw e;
+        }
+      }
+    };
+
+    // PrecioVersion cuelga de VersionModelo → borrarlo primero
+    await safeDelete(`DELETE FROM PrecioVersion WHERE VersionID IN (SELECT VersionID FROM VersionModelo WHERE ModeloID = ${idNum})`);
+    await safeDelete(`DELETE FROM VersionModelo WHERE ModeloID = ${idNum}`);
+    await safeDelete(`DELETE FROM EquipamientoModelo WHERE ModeloID = ${idNum}`);
+    await safeDelete(`DELETE FROM PrecioModelo WHERE ModeloID = ${idNum}`);
+    await safeDelete(`DELETE FROM ModeloHistorial WHERE ModeloID = ${idNum}`);
+    await safeDelete(`DELETE FROM ModeloEstado WHERE ModeloID = ${idNum}`);
+    await safeDelete(`DELETE FROM VentasModelo WHERE ModeloID = ${idNum}`);
+    await safeDelete(`DELETE FROM Venta WHERE ModeloID = ${idNum}`);
+    await safeDelete(`DELETE FROM Empadronamiento WHERE ModeloID = ${idNum}`);
+    // Finalmente el modelo. Este NO es safeDelete: si algo quedó colgando, queremos ver el error.
     await db.queryRaw(`DELETE FROM Modelo WHERE ModeloID = ${idNum}`);
 
     logger.info(`Modelo eliminado PERMANENTEMENTE: ID ${idNum} - "${descripcion}" por usuario ${req.user.username}`);

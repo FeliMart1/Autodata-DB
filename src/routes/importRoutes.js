@@ -6,6 +6,7 @@ const {
   importarExcelAutos,
   importarExcelPrecios,
   importarExcelCompleto,
+  importarExcelMinimos,
   descargarTemplateCompleto,
   listarBatches,
   obtenerBatch,
@@ -18,6 +19,10 @@ router.get('/template-completo', descargarTemplateCompleto);
 
 // POST /api/import/excel-completo - Sube la plantilla maestra con los datos del equipamiento
 router.post('/excel-completo', upload.single('file'), importarExcelCompleto);
+
+// POST /api/import/excel-minimos - Mismo formato que el definitivo, pero carga solo datos del
+// modelo (sin equipamiento) y deja los autos en estado 'minimos_aprobados'
+router.post('/excel-minimos', upload.single('file'), importarExcelMinimos);
 
 // POST /api/import/excel-modelos - Subir Excel respetando IDs originales
 router.post('/excel-modelos', upload.single('file'), importarExcelAutos);

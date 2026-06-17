@@ -46,17 +46,21 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
   };
 
   const InfoRow = ({ label, value }: { label: string; value: any }) => {
-    if (value === null || value === undefined || value === '') return null; // Don't show empty fields
+    // Campo sin dato cargado: se muestra igual con un guión, para que la vista
+    // sea idéntica en todos los modelos (no se ocultan campos vacíos).
+    const isEmpty = value === null || value === undefined || value === '';
 
     // Incluye 1/0 numéricos que devuelve msnodesqlv8 para columnas BIT
-    const isBooleanish = value === true || value === false || value === 1 || value === 0
-      || value === 'Si' || value === 'No' || value === 'Sí' || value === 'N/A';
-    
+    const isBooleanish = !isEmpty && (value === true || value === false || value === 1 || value === 0
+      || value === 'Si' || value === 'No' || value === 'Sí' || value === 'N/A');
+
     return (
       <div className="flex items-center justify-between py-2 border-b border-slate-100 last:border-b-0">
         <span className="text-sm font-medium text-slate-500 w-2/3 pr-4 leading-tight break-words">{label}</span>
         <div className="text-sm font-semibold text-slate-800 text-right">
-            {isBooleanish ? <BooleanBadge value={value} /> : value}
+            {isEmpty
+              ? <span className="text-slate-400">—</span>
+              : (isBooleanish ? <BooleanBadge value={value} /> : value)}
         </div>
       </div>
     );
@@ -289,8 +293,11 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     AsientosDeportivos: "Asientos deportivos",
   };
 
-  // Filtrar a solo columnas canónicas con etiqueta definida (excluye las ~98 legacy de la DB)
-  const keys = Object.keys(equipamiento).filter(k => Object.prototype.hasOwnProperty.call(labelMap, k));
+  // Iteramos sobre el orden agrupado del labelMap (no sobre las claves del registro) y
+  // mostramos solo las columnas canónicas que realmente devuelve el backend.
+  // Como el backend siempre devuelve el MISMO conjunto de columnas canónicas para cualquier
+  // modelo con equipamiento, la lista de campos resulta idéntica en todos los modelos.
+  const keys = Object.keys(labelMap).filter(k => Object.prototype.hasOwnProperty.call(equipamiento, k));
 
   const formatLabel = (key: string) => labelMap[key] || key.replace(/([A-Z])/g, ' $1').trim();
 

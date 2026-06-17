@@ -10,6 +10,7 @@ import api from '@services/api';
 export function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [completeFile, setCompleteFile] = useState<File | null>(null);
+  const [minimosFile, setMinimosFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const { addToast } = useToast();
@@ -24,6 +25,13 @@ export function ImportPage() {
   const handleCompleteFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setCompleteFile(e.target.files[0]);
+      setResult(null);
+    }
+  };
+
+  const handleMinimosFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setMinimosFile(e.target.files[0]);
       setResult(null);
     }
   };
@@ -58,6 +66,36 @@ export function ImportPage() {
       if (fileInput) fileInput.value = '';
     } catch (error: any) {
       addToast(error.response?.data?.message || 'Error al subir la Plantilla Maestra', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUploadMinimos = async () => {
+    if (!minimosFile) {
+      addToast('Selecciona el archivo Excel', 'warning');
+      return;
+    }
+
+    setIsUploading(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append('file', minimosFile);
+
+    try {
+      const response = await api.post('/import/excel-minimos', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setResult(response.data);
+      addToast(`Éxito: ${response.data.data.creados.modelos} modelos cargados con datos mínimos aprobados.`, 'success');
+      setMinimosFile(null);
+
+      const fileInput = document.getElementById('excel-minimos-file') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (error: any) {
+      addToast(error.response?.data?.message || 'Error al subir el Excel de Datos Mínimos', 'error');
     } finally {
       setIsUploading(false);
     }
@@ -142,6 +180,55 @@ export function ImportPage() {
             >
               <Upload className="h-4 w-4" />
               {isUploading ? 'Procesando...' : 'Cargar Vehículos Completos'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tarjeta para Import de Datos Mínimos (mismo formato que el definitivo) */}
+      <Card className="border-amber-200 shadow-md">
+        <CardHeader className="bg-amber-50 border-b border-amber-100">
+          <CardTitle className="flex items-center gap-2 text-amber-800">
+            <CheckCircle2 className="h-6 w-6 text-amber-600" />
+            Import de Datos Mínimos
+          </CardTitle>
+          <CardDescription className="text-amber-700">
+            Usa exactamente la misma Plantilla Maestra que el import definitivo. Carga solo los
+            datos mínimos del modelo (sin equipamiento) y deja los autos en estado
+            <strong> Datos Mínimos Aprobados</strong>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center p-4 bg-muted border rounded-lg">
+            <span className="text-sm flex-1 text-muted-foreground">
+              <strong>Paso 1:</strong> Podés usar la misma plantilla del import definitivo.
+            </span>
+            <Button onClick={handleDownloadTemplate} variant="outline" className="shrink-0 gap-2">
+              <Download className="h-4 w-4" />
+              Descargar Plantilla Vacía
+            </Button>
+          </div>
+
+          <div className="grid gap-4 md:flex items-end">
+            <div className="flex-1 space-y-2">
+              <label htmlFor="excel-minimos-file" className="text-sm font-medium leading-none">
+                <strong>Paso 2:</strong> Subir Plantilla (Datos Mínimos)
+              </label>
+              <Input
+                id="excel-minimos-file"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleMinimosFileChange}
+                disabled={isUploading}
+              />
+            </div>
+            <Button
+              onClick={handleUploadMinimos}
+              disabled={!minimosFile || isUploading}
+              className="gap-2 bg-amber-600 hover:bg-amber-700"
+            >
+              <Upload className="h-4 w-4" />
+              {isUploading ? 'Procesando...' : 'Cargar Datos Mínimos'}
             </Button>
           </div>
         </CardContent>
