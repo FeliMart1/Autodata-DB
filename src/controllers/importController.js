@@ -724,6 +724,24 @@ const importarExcelCompleto = async (req, res) => {
         normRow['tablerdigital3d'] = normRow['tablerodigital3d'];
       }
 
+      // Aliases para las columnas duplicadas al final del Excel (índices 180-183) cuyos nombres abreviados
+      // no coinciden con los nombres reales de la DB. Solo se aplican si la columna correcta aún no tiene valor.
+      // [114] C_3raFiladeasientoselctricos  → DB: TerceraFilaAsientosElectricos
+      if (normRow['c3rafiladeasientoselctricos'] !== undefined && normRow['tercerafilaasientoselectricos'] === undefined)
+        normRow['tercerafilaasientoselectricos'] = normRow['c3rafiladeasientoselctricos'];
+      // [180] Bloqueodiferencialporterreno  → DB: BloqueDiferencialTerreno
+      if (normRow['bloqueodiferencialporterreno'] !== undefined && normRow['bloquediferencialterreno'] === undefined)
+        normRow['bloquediferencialterreno'] = normRow['bloqueodiferencialporterreno'];
+      // [181] Asientosconmasajeadornmero    → DB: AsientosMasajeador
+      if (normRow['asientosconmasajeadornmero'] !== undefined && normRow['asientosmasajeador'] === undefined)
+        normRow['asientosmasajeador'] = normRow['asientosconmasajeadornmero'];
+      // [182] AutonomadelmotorelctricoBEVyPHEV → DB: AutonomiaMaxRange
+      if (normRow['autonomadelmotorelctricobevyphev'] !== undefined && normRow['autonomiamaxrange'] === undefined)
+        normRow['autonomiamaxrange'] = normRow['autonomadelmotorelctricobevyphev'];
+      // [183] Apoyabrazocentraldeasientotrasero → DB: ApoyabrazosCentralTrasero
+      if (normRow['apoyabrazocentraldeasientotrasero'] !== undefined && normRow['apoyabrazoscentraltrasero'] === undefined)
+        normRow['apoyabrazoscentraltrasero'] = normRow['apoyabrazocentraldeasientotrasero'];
+
       const codMarcaRaw = normRow['codigomarca'] || normRow['codmarca'] || row['Codigo_Marca'] || row['Codigo Marca'] || '';
       const codMarcaDigits = String(codMarcaRaw).replace(/\D+/g, '').trim();
       if (!codMarcaDigits) continue;

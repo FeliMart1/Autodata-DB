@@ -26,13 +26,25 @@ exports.getByModeloId = async (req, res) => {
       data[col.COLUMN_NAME] = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
     });
 
-    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos y mezclamos        
+    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos
+    // IMPORTANTE: solo se usa como fallback para columnas reales de la DB que estén en null.
+    // NO se agregan claves extra que no existan en el schema → evita duplicados en la vista
+    // (ej: "Espejoselct", "Espejoselect" vs "EspejosElectricos" que son la misma cosa con nombre distinto)
     if (data && data.OtrosDatos && typeof data.OtrosDatos === 'string') {
       const trimmed = data.OtrosDatos.trim();
       if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
         try {
           const extraData = JSON.parse(trimmed);
-          data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad 
+          const dbColumnSet = new Set(columnsQuery.map(col => col.COLUMN_NAME));
+          for (const [key, val] of Object.entries(extraData)) {
+            // Solo aplicar si la clave es una columna real de la DB
+            if (!dbColumnSet.has(key)) continue;
+            // Solo usar OtrosDatos como fallback si el valor en DB es null (DB tiene prioridad)
+            if (data[key] !== null) continue;
+            // No aplicar valores nulos/indefinidos de OtrosDatos
+            if (val === null || val === undefined) continue;
+            data[key] = val;
+          }
         } catch (e) {
           logger.warn('OtrosDatos no es JSON válido, se ignora el parseo:', data.OtrosDatos);
         }
@@ -152,10 +164,21 @@ exports.update = async (req, res) => {
     const setClauses = [];
     const dbCols = await getDBColumns();
 
-    // Guardamos absolutamente todo el payload en la columna JSON para preservar TODOS los botones y textos 100% como los manda el cliente
+    // Solo guardamos en OtrosDatos las claves que NO tienen columna real en la DB.
+    // Guardar TODO en OtrosDatos provocaba que getByModeloId retornara claves duplicadas con nombres
+    // alternativos (ej: "Espejoselct" y "EspejosElectricos" a la vez).
     if (dbCols.includes('OtrosDatos')) {
-        const safeJson = JSON.stringify(equipamiento).replace(/'/g, "''");
+      const skipAlways = new Set(['ModeloID', 'EquipamientoID', 'FechaCreacion', 'FechaModificacion', 'FechaActualizacion', 'OtrosDatos']);
+      const extraKeys = Object.keys(equipamiento).filter(k => !dbCols.includes(k) && !skipAlways.has(k));
+      if (extraKeys.length > 0) {
+        const extraData = {};
+        extraKeys.forEach(k => { extraData[k] = equipamiento[k]; });
+        const safeJson = JSON.stringify(extraData).replace(/'/g, "''");
         setClauses.push(`OtrosDatos = '${safeJson}'`);
+      } else {
+        // Sin datos extra → limpiar OtrosDatos para eliminar residuos de versiones anteriores
+        setClauses.push(`OtrosDatos = NULL`);
+      }
     }
     
     // Tratamos de buscar la columna correcta de actualización segun version del SQL
