@@ -7,7 +7,10 @@ exports.getByModeloId = async (req, res) => {
     const { modeloId } = req.params;
 
     // Get all columns of the EquipamientoModelo table
-    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo'");
+    // IMPORTANTE: filtrar a ORDINAL_POSITION <= 178 para excluir las ~98 columnas legacy
+    // (ej: Espejoselct, Tablerodigital, Controltraccin) añadidas por versiones antiguas del formulario.
+    // Las columnas canónicas del schema original van de 1 a 178 (hasta DistEjes).
+    const columnsQuery = await db.queryRaw("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'EquipamientoModelo' AND ORDINAL_POSITION <= 178");
     
     // Get actual data
     const query = `
@@ -71,9 +74,10 @@ exports.getByModeloId = async (req, res) => {
   }
 };
 
-// Funci\u00F3n de ayuda para obtener columnas
+// Función de ayuda para obtener columnas CANÓNICAS (ORDINAL_POSITION <= 178)
+// Excluye las ~98 columnas legacy añadidas por versiones antiguas del formulario
 const getDBColumns = async () => {
-    const cols = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EquipamientoModelo'");
+    const cols = await db.queryRaw("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='EquipamientoModelo' AND ORDINAL_POSITION <= 178");
     return cols.map(c => c.COLUMN_NAME);
 };
 

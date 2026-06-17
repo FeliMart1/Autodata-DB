@@ -988,19 +988,19 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Seat adjustment, memory (Co-Driver)</label>
-                <input type="checkbox" disabled={readonly} checked={(formData['SeatadjustmentmemoryCoDriver'] as boolean) || false} onChange={(e) => handleChange('SeatadjustmentmemoryCoDriver', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+                <input type="checkbox" disabled={readonly} checked={(formData['SeatAdjustmentMemoryCoDriver'] as boolean) || false} onChange={(e) => handleChange('SeatAdjustmentMemoryCoDriver', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Lumbar, Lumbar adjustment front (Driver)</label>
-                <input type="checkbox" disabled={readonly} checked={(formData['LumbarLumbaradjustmentfrontDriver'] as boolean) || false} onChange={(e) => handleChange('LumbarLumbaradjustmentfrontDriver', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+                <input type="checkbox" disabled={readonly} checked={(formData['LumbarAdjustmentFrontDriver'] as boolean) || false} onChange={(e) => handleChange('LumbarAdjustmentFrontDriver', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Lumbar, Lumbar adjustment front (Co-Driver)</label>
-                <input type="checkbox" disabled={readonly} checked={(formData['LumbarLumbaradjustmentfrontCoDriver'] as boolean) || false} onChange={(e) => handleChange('LumbarLumbaradjustmentfrontCoDriver', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+                <input type="checkbox" disabled={readonly} checked={(formData['LumbarAdjustmentFrontCoDriver'] as boolean) || false} onChange={(e) => handleChange('LumbarAdjustmentFrontCoDriver', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700 leading-tight break-words">Seat heating, rear</label>
-                <input type="checkbox" disabled={readonly} checked={(formData['Seatheatingrear'] as boolean) || false} onChange={(e) => handleChange('Seatheatingrear', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
+                <input type="checkbox" disabled={readonly} checked={(formData['SeatHeatingRear'] as boolean) || false} onChange={(e) => handleChange('SeatHeatingRear', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-blue" />
               </div>
             </div>
           </CardContent>

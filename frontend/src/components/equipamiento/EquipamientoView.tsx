@@ -99,39 +99,48 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     );
   }
 
-  // Helper to split object into sensible chunks
-  const keys = Object.keys(equipamiento).filter(k => !['EquipamientoID', 'ModeloID', 'FechaCreacion', 'FechaModificacion', 'OtrosDatos'].includes(k));
-  
   // Mapa de claves DB → etiqueta legible en la vista
+  // IMPORTANTE: este mapa actúa como WHITELIST de columnas canónicas.
+  // Solo se muestran columnas presentes aquí, eliminando las ~98 columnas legacy de la DB.
   const labelMap: Record<string, string> = {
-    Caja: "Tipo de Caja Automática",
-    TablerDigital: "Tablero Digital",
-    TablerDigital3D: "Tablero Digital 3D",
-    ABAG: "Airbags",
-    SRI: "Sistema Retención Infantil",
-    ABS: "ABS",
-    EBD_EBV_REF: "EBD / EBV / REF",
-    ESP_ControlEstabilidad: "ESP / Control Estabilidad",
-    GPS: "GPS",
-    USB: "USB",
-    MP3: "MP3",
-    CD: "CD",
-    DVD: "DVD",
-    TPMS: "TPMS (sensor presión neumáticos)",
-    CO2_g_km: "CO₂ (g/km)",
-    EPedal: "E-Pedal",
-    KgPorHP: "Kg/HP",
+    // --- Dimensiones y neumáticos ---
+    Largo: "Largo (mm)",
+    Ancho: "Ancho (mm)",
+    Altura: "Altura (mm)",
     DistanciaEjes: "Distancia entre ejes (mm)",
     PesoOrdenMarcha: "Peso orden de marcha (kg)",
-    DiametroLlantas: "Diámetro llantas (pulgadas)",
+    KgPorHP: "Kg/HP",
+    Neumaticos: "Neumáticos",
+    LlantasAleacion: "Llantas de aleación",
+    DiametroLlantas: "Diámetro llantas (pulg.)",
+    TPMS: "TPMS (sensor presión neumáticos)",
     KitInflableAntiPinchazo: "Kit inflable anti-pinchazo",
     RuedaAuxHomogenea: "Rueda auxiliar homogénea",
+    // --- Mecánica ---
+    Cilindros: "Cilindros",
+    Valvulas: "Válvulas",
+    Inyeccion: "Inyección",
+    Traccion: "Tracción",
+    Suspension: "Suspensión",
+    Caja: "Tipo de Caja Automática",
     MarchasVelocidades: "Marchas / velocidades",
+    Turbo: "Turbo",
+    NumeroPuertas: "Número de puertas",
+    Aceite: "Aceite",
+    Norma: "Norma",
     StartStop: "Start / Stop",
+    // --- Consumo y emisiones ---
+    CO2_g_km: "CO₂ (g/km)",
+    ConsumoRuta: "Consumo ruta (l/100km)",
+    ConsumoUrbano: "Consumo urbano (l/100km)",
+    ConsumoMixto: "Consumo mixto (l/100km)",
+    // --- Garantía ---
     GarantiaAnios: "Garantía (años)",
     GarantiaKm: "Garantía (km)",
     GarantiasDiferenciales: "Garantías diferenciales",
+    // --- Eléctrico / Híbrido ---
     TipoVehiculoElectrico: "Tipo vehículo eléctrico / híbrido",
+    EPedal: "E-Pedal",
     CapacidadTanqueHidrogeno: "Capacidad tanque hidrógeno",
     AutonomiaMaxRange: "Autonomía máxima (km)",
     CicloNorma: "Ciclo / norma",
@@ -144,33 +153,58 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     TecnologiaBat: "Tecnología batería",
     TiempoCarga: "Tiempo de carga",
     CodigoFichaTecnica: "Código ficha técnica",
+    // --- Confort e interior ---
     SistemaClimatizacion: "Sistema climatización",
+    Direccion: "Dirección",
     TipoBloqueo: "Tipo de bloqueo",
     KeylessSmartKey: "Keyless / Smart Key",
     LevantaVidrios: "Levantavidrios",
     EspejosElectricos: "Espejos eléctricos",
     EspejoInteriorElectrocromado: "Espejo interior electrocromado",
     EspejosAbatiblesElectricamente: "Espejos abatibles eléctricamente",
+    Tapizado: "Tapizado",
     VolanteRevestidoCuero: "Volante revestido en cuero",
-    VelocidadCrucero: "Control de velocidad crucero",
+    TablerDigital: "Tablero Digital",
+    Computadora: "Computadora a bordo",
+    GPS: "GPS",
+    VelocidadCrucero: "Control velocidad crucero",
+    Inmovilizador: "Inmovilizador",
+    Alarma: "Alarma",
+    // --- Seguridad activa ---
+    ABAG: "Airbags",
+    SRI: "Sistema Retención Infantil",
+    ABS: "ABS",
+    EBD_EBV_REF: "EBD / EBV / REF",
+    DiscosFrenos: "Discos / frenos",
     FrenoEstacionamientoElectrico: "Freno de estacionamiento eléctrico",
+    ESP_ControlEstabilidad: "ESP / Control Estabilidad",
+    ControlTraccion: "Control de tracción",
     AsistFrenadoDetectorDistancia: "Asist. frenado / detector distancia",
     AsistPendiente: "Asistencia en pendiente",
     DetectorCambioFila: "Detector cambio de fila",
     DetectorPuntoCiego: "Detector punto ciego",
     TrafficSignRecognition: "Reconocimiento señales de tráfico",
     DriverAttentionControl: "Control atención del conductor",
+    DetectorLluvia: "Detector de lluvia",
     GripControl: "Grip Control",
     LimitadorVelocidad: "Limitador de velocidad",
     AsistDescensoHDC: "Asistencia de descenso (HDC)",
     PaddleShift: "Paddle Shift",
+    // --- Multimedia y conectividad ---
     ComandoAudioVolante: "Comando audio en volante",
+    CD: "CD",
+    MP3: "MP3",
+    USB: "USB",
+    Bluetooth: "Bluetooth",
+    DVD: "DVD",
     MirrorScreen: "Mirror Screen",
     SistemaMultimedia: "Sistema multimedia",
     PantallaMultimediaPulgadas: "Pantalla multimedia (pulgadas)",
     PantallaTactil: "Pantalla táctil",
     CargadorSmartphoneInduccion: "Cargador smartphone por inducción",
     KitHiFi: "Kit HiFi",
+    Radio: "Radio",
+    // --- Asientos ---
     NumeroAsientos: "Número de asientos",
     AsientoElectricoCalefMasaje: "Asiento eléctrico / calef. / masaje",
     AsientosRango2y3: "Asientos rango 2 y 3",
@@ -189,11 +223,16 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     LumbarAdjustmentFrontDriver: "Ajuste lumbar conductor",
     LumbarAdjustmentFrontCoDriver: "Ajuste lumbar acompañante",
     SeatHeatingRear: "Calefacción asientos traseros",
+    // --- Techo y exterior ---
+    Techo: "Techo",
     TechoBiTono: "Techo bi-tono",
     BarrasTecho: "Barras de techo",
     NumeroTechosQueSeAbren: "Número de techos que se abren",
+    // --- Estacionamiento y cámara ---
     SensorEstacionamiento: "Sensor de estacionamiento",
+    Camara: "Cámara",
     SistemaAutomaticoEstacionamiento: "Sistema automático de estacionamiento",
+    // --- Iluminación ---
     FarosNeblina: "Faros de niebla",
     FarosDireccionales: "Faros direccionales",
     FarosFullLED: "Faros Full LED",
@@ -205,6 +244,7 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     FarosMatrix: "Faros Matrix",
     LucesTraserasLED: "Luces traseras LED",
     LucesTraserasOLED: "Luces traseras OLED",
+    // --- Maletero / carga ---
     MaleteraAperturaElectrica: "Maletero apertura eléctrica",
     CapacidadBaul: "Capacidad baúl (L)",
     CapacidadTanqueCombustible: "Capacidad tanque combustible (L)",
@@ -216,6 +256,7 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     VolumenUtil_m3: "Volumen útil (m³)",
     TipoAlturaUL: "Tipo / altura carga útil",
     CapacidadCargaCamiones: "Capacidad carga camiones",
+    // --- Seguridad avanzada ---
     AlertaTraficoCruzadoTrasero: "Alerta tráfico cruzado trasero",
     AlertaTraficoCruzadoFrontal: "Alerta tráfico cruzado frontal",
     FrenadoMulticolision: "Frenado multicolisión",
@@ -228,6 +269,8 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     LimpiaLavaParabrisasTrasero: "Limpia/lava parabrisas trasero",
     BlackWheelFrame: "Black Wheel Frame",
     VolanteMultifuncion: "Volante multifunción",
+    TablerDigital3D: "Tablero Digital 3D",
+    // --- Performance y tech avanzada ---
     AceleracionBEV_0a100: "Aceleración BEV 0-100 km/h (s)",
     AccelerationICE: "Aceleración ICE 0-100 km/h (s)",
     CargaElectricaWireless: "Carga eléctrica wireless",
@@ -243,10 +286,11 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     DeflectorViento: "Deflector de viento",
     AsientosDeportivos: "Asientos deportivos",
   };
-  const formatLabel = (key: string) => {
-    if (labelMap[key]) return labelMap[key];
-    return key.replace(/([A-Z])/g, ' $1').trim();
-  };
+
+  // Filtrar a solo columnas canónicas con etiqueta definida (excluye las ~98 legacy de la DB)
+  const keys = Object.keys(equipamiento).filter(k => Object.prototype.hasOwnProperty.call(labelMap, k));
+
+  const formatLabel = (key: string) => labelMap[key] || key.replace(/([A-Z])/g, ' $1').trim();
 
   return (
     <div className="space-y-6">
