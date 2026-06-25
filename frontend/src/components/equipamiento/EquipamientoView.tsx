@@ -46,15 +46,14 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
   };
 
   const InfoRow = ({ label, value }: { label: string; value: any }) => {
-    if (value === null || value === undefined || value === '') return null; // Don't show empty fields
-
+    const vacio = value === null || value === undefined || value === '';
     const isBooleanish = value === true || value === false || value === 'Si' || value === 'No' || value === 'Sí' || value === 'N/A';
-    
+
     return (
       <div className="flex items-center justify-between py-2 border-b border-slate-100 last:border-b-0">
         <span className="text-sm font-medium text-slate-500 w-2/3 pr-4 leading-tight break-words">{label}</span>
         <div className="text-sm font-semibold text-slate-800 text-right">
-            {isBooleanish ? <BooleanBadge value={value} /> : value}
+            {vacio ? <span className="text-slate-400">—</span> : (isBooleanish ? <BooleanBadge value={value} /> : value)}
         </div>
       </div>
     );
@@ -76,7 +75,7 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     );
   }
 
-  if (!equipamiento || Object.keys(equipamiento).length <= 1) {
+  if (!equipamiento) {
     return (
       <Card>
         <CardHeader>
@@ -98,7 +97,13 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
 
   // Helper to split object into sensible chunks
   const keys = Object.keys(equipamiento).filter(k => !['EquipamientoID', 'ModeloID', 'FechaCreacion', 'FechaModificacion', 'OtrosDatos', 'CreadoPorID', 'ModificadoPorID', '__schema'].includes(k));
-  
+
+  // ¿Tiene algún dato cargado? (algún campo no vacío)
+  const hayDatos = keys.some(k => {
+    const v = (equipamiento as any)[k];
+    return v !== null && v !== undefined && v !== '';
+  });
+
   // Format a key like 'AsientoConductorElectrico' to 'Asiento Conductor Electrico'
   const labelMap: Record<string, string> = {
     Caja: "Tipo de Caja Autom\u00e1tica",
@@ -110,6 +115,17 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
 
   return (
     <div className="space-y-6">
+      {!hayDatos && (
+        <Alert>
+          <div className="space-y-1">
+            <p className="font-medium">Aún no hay equipamiento cargado para este modelo</p>
+            <p className="text-sm text-muted-foreground">
+              Se muestran todos los campos con "—". El equipamiento se carga en la fase correspondiente del flujo de trabajo.
+            </p>
+          </div>
+        </Alert>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
 
         <Card className="border shadow-sm overflow-hidden border-slate-200 col-span-full">

@@ -21,9 +21,9 @@ exports.getByModeloId = async (req, res) => {
     // Auto-fill an empty object with all schema columns mapping them to null/false so the frontend knows they exist even if empty
     let data = {};
     columnsQuery.forEach(col => {
-      // Default to null or false depending on bit type
-      const defaultVal = col.DATA_TYPE === 'bit' ? false : null;
-      data[col.COLUMN_NAME] = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
+      // Sin dato = null para TODO tipo (incluido bit): la vista lo muestra como "—" (no cargado),
+      // en vez de "No". Así se distingue "no cargado" de un "No" explícito.
+      data[col.COLUMN_NAME] = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : null;
     });
 
     // OtrosDatos (blob JSON) eliminado del esquema: se usan columnas estructuradas únicamente.
