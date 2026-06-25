@@ -31,7 +31,7 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     }
   };
 
-  const BooleanBadge = ({ value }: { value: boolean }) => {
+  const BooleanBadge = ({ value }: { value: any }) => {
     // Treat string 'No' or false as false, 'Si' 'N/A' etc accordingly
     if (value === true || value === 'Si' || value === 'Sí') {
         return <Badge variant="success" className="gap-1 bg-green-500 hover:bg-green-600"><CheckCircle2 className="h-3 w-3" /> Sí</Badge>;
@@ -97,7 +97,7 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
   }
 
   // Helper to split object into sensible chunks
-  const keys = Object.keys(equipamiento).filter(k => !['EquipamientoID', 'ModeloID', 'FechaCreacion', 'FechaModificacion', 'OtrosDatos'].includes(k));
+  const keys = Object.keys(equipamiento).filter(k => !['EquipamientoID', 'ModeloID', 'FechaCreacion', 'FechaModificacion', 'OtrosDatos', 'CreadoPorID', 'ModificadoPorID', '__schema'].includes(k));
   
   // Format a key like 'AsientoConductorElectrico' to 'Asiento Conductor Electrico'
   const labelMap: Record<string, string> = {

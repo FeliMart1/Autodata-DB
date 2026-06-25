@@ -26,22 +26,18 @@ exports.getByModeloId = async (req, res) => {
       data[col.COLUMN_NAME] = dbData[col.COLUMN_NAME] !== undefined ? dbData[col.COLUMN_NAME] : defaultVal;
     });
 
-    // Si existe data en formato JSON dentro de OtrosDatos, la parseamos y mezclamos        
-    if (data && data.OtrosDatos && typeof data.OtrosDatos === 'string') {
-      const trimmed = data.OtrosDatos.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        try {
-          const extraData = JSON.parse(trimmed);
-          data = { ...extraData, ...data }; // Las columnas de base de datos tienen prioridad 
-        } catch (e) {
-          logger.warn('OtrosDatos no es JSON válido, se ignora el parseo:', data.OtrosDatos);
-        }
-      }
-    }
+    // OtrosDatos (blob JSON) eliminado del esquema: se usan columnas estructuradas únicamente.
+
+    // Exponemos el esquema (columna + tipo) para que el form pueda auto-generar
+    // inputs de los campos no curados y garantizar paridad con el import.
+    const schema = columnsQuery
+      .filter(c => !['EquipamientoID','ModeloID','CreadoPorID','FechaCreacion','ModificadoPorID','FechaModificacion'].includes(c.COLUMN_NAME))
+      .map(c => ({ column: c.COLUMN_NAME, type: c.DATA_TYPE }));
 
     res.json({
       success: true,
-      data: data
+      data: data,
+      schema: schema
     });
   } catch (error) {
     logger.error('Error al obtener equipamiento:', error);
@@ -86,16 +82,9 @@ exports.create = async (req, res) => {
     const columnasToInsert = ['ModeloID', 'FechaCreacion'];
     const valoresToInsert = [modeloId, 'GETDATE()'];
 
-    // Siempre guardamos el payload crudo en OtrosDatos por si cambian las columnas
-    if (dbCols.includes('OtrosDatos')) {
-        columnasToInsert.push('OtrosDatos');
-        const safeJson = JSON.stringify(equipamiento).replace(/'/g, "''");
-        valoresToInsert.push(`'${safeJson}'`);
-    }
-
     // Insertar columnas que existan en la base de datos
     for (const key of Object.keys(equipamiento)) {
-      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion' && key !== 'FechaCreacion') {
+      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion' && key !== 'FechaCreacion') {
         columnasToInsert.push(key);
         const val = equipamiento[key];
         if (val === null || val === undefined) {
@@ -152,12 +141,6 @@ exports.update = async (req, res) => {
     const setClauses = [];
     const dbCols = await getDBColumns();
 
-    // Guardamos absolutamente todo el payload en la columna JSON para preservar TODOS los botones y textos 100% como los manda el cliente
-    if (dbCols.includes('OtrosDatos')) {
-        const safeJson = JSON.stringify(equipamiento).replace(/'/g, "''");
-        setClauses.push(`OtrosDatos = '${safeJson}'`);
-    }
-    
     // Tratamos de buscar la columna correcta de actualización segun version del SQL
     if (dbCols.includes('FechaModificacion')) {
         setClauses.push('FechaModificacion = GETDATE()');
@@ -167,7 +150,7 @@ exports.update = async (req, res) => {
 
     // Actualizar columnas que existan en la base de datos de manera individual, excluyendo IDs para evitar conflictos
     for (const key of Object.keys(equipamiento)) {
-      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'OtrosDatos' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion' && key !== 'FechaCreacion') {
+      if (dbCols.includes(key) && key !== 'ModeloID' && key !== 'EquipamientoID' && key !== 'FechaModificacion' && key !== 'FechaActualizacion' && key !== 'FechaCreacion') {
         const val = equipamiento[key];
         if (val === null || val === undefined) {
           setClauses.push(`${key} = NULL`);
@@ -184,7 +167,7 @@ exports.update = async (req, res) => {
     if (setClauses.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No hay datos para actualizar o no existe columna OtrosDatos en DB'
+        message: 'No hay datos válidos para actualizar'
       });
     }
 

@@ -2,6 +2,7 @@
 const { parse } = require('csv-parse/sync');
 const db = require('../config/db-simple');
 const logger = require('../config/logger');
+const { asegurarEquipamientoVacio } = require('../utils/modeloHelper');
 
 const xlsx = require('xlsx');
 
@@ -397,6 +398,9 @@ const procesarBatch = async (req, res) => {
         const nuevoModelo = await db.insert('Modelo', modeloData);
         const modeloId = nuevoModelo.ModeloID;
 
+        // Unificación: todo modelo arranca con su fila 1:1 de equipamiento (vacía)
+        await asegurarEquipamientoVacio(modeloId);
+
         // 3. Crear versión si hay datos
         if (reg.version) {
           await db.insert('VersionModelo', {
@@ -594,6 +598,8 @@ const importarExcelAutos = async (req, res) => {
         if (mod.precio != null && !isNaN(mod.precio)) {
           await db.queryWithParams(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Precio importado Excel', GETDATE())`, [modeloIdDb, mod.precio]);
         }
+        // Unificación: todo modelo importado arranca con su fila 1:1 de equipamiento (vacía)
+        await asegurarEquipamientoVacio(modeloIdDb);
       }
     }
     return res.json({ success: true, message: 'Importación completada', data: { creados } });
@@ -722,6 +728,14 @@ const importarExcelCompleto = async (req, res) => {
       }
       if (normRow['tablerodigital3d'] !== undefined && normRow['tablerdigital3d'] === undefined) {
         normRow['tablerdigital3d'] = normRow['tablerodigital3d'];
+      }
+      // Alias: el header legacy "C_3raFiladeasientoselctricos" del template mapea a la columna limpia TerceraFilaAsientosElectricos.
+      if (normRow['c3rafiladeasientoselctricos'] !== undefined && normRow['tercerafilaasientoselectricos'] === undefined) {
+        normRow['tercerafilaasientoselectricos'] = normRow['c3rafiladeasientoselctricos'];
+      }
+      // Alias: header legacy "AutonomadelmotorelctricoBEVyPHEV" → columna limpia AutonomiaMotorElectricoBEVPHEV (dato propio, NO duplica AutonomiaMaxRange).
+      if (normRow['autonomadelmotorelctricobevyphev'] !== undefined && normRow['autonomiamotorelectricobevphev'] === undefined) {
+        normRow['autonomiamotorelectricobevphev'] = normRow['autonomadelmotorelctricobevyphev'];
       }
 
       const codMarcaRaw = normRow['codigomarca'] || normRow['codmarca'] || row['Codigo_Marca'] || row['Codigo Marca'] || '';
@@ -926,6 +940,10 @@ const importarExcelCompleto = async (req, res) => {
           creados.equipamiento_errors = (creados.equipamiento_errors || 0) + 1;
         }
       }
+
+      // Unificación: si el modelo no recibió payload de equipamiento, igual queda
+      // con su fila 1:1 vacía para mantener la misma estructura que el resto.
+      await asegurarEquipamientoVacio(modeloIdDb);
     }
 
     return res.status(200).json({
