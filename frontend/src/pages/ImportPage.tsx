@@ -10,6 +10,7 @@ import api from '@services/api';
 export function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [completeFile, setCompleteFile] = useState<File | null>(null);
+  const [minimosFile, setMinimosFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const { addToast } = useToast();
@@ -58,6 +59,44 @@ export function ImportPage() {
       if (fileInput) fileInput.value = '';
     } catch (error: any) {
       addToast(error.response?.data?.message || 'Error al subir la Plantilla Maestra', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleMinimosFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setMinimosFile(e.target.files[0]);
+      setResult(null);
+    }
+  };
+
+  const handleUploadMinimos = async () => {
+    if (!minimosFile) {
+      addToast('Selecciona el archivo Excel de datos mínimos', 'warning');
+      return;
+    }
+
+    setIsUploading(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append('file', minimosFile);
+
+    try {
+      const response = await api.post('/import/excel-minimos', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setResult(response.data);
+      const r = response.data?.data?.resultado || {};
+      addToast(`Mínimos cargados: ${r.creados || 0} creados, ${r.actualizados || 0} actualizados.`, 'success');
+      setMinimosFile(null);
+
+      const fileInput = document.getElementById('excel-minimos-file') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (error: any) {
+      addToast(error.response?.data?.message || 'Error al subir los datos mínimos', 'error');
     } finally {
       setIsUploading(false);
     }
@@ -144,6 +183,63 @@ export function ImportPage() {
               {isUploading ? 'Procesando...' : 'Cargar Vehículos Completos'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Importar SOLO datos mínimos (sin equipamiento) */}
+      <Card className="border-amber-200 shadow-md">
+        <CardHeader className="bg-amber-50 border-b border-amber-100">
+          <CardTitle className="flex items-center gap-2 text-amber-800">
+            <FileSpreadsheet className="h-6 w-6 text-amber-600" />
+            Importar Mínimos (sin equipamiento)
+          </CardTitle>
+          <CardDescription className="text-amber-700">
+            Carga solo los datos mínimos desde la misma plantilla (ignora las columnas de equipamiento).
+            Los modelos quedan en estado <strong>minimos_aprobados</strong>, listos para cargar el equipamiento.
+            Si el modelo ya existe, completa/actualiza sus datos mínimos sin tocar equipamiento ni precio.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div className="grid gap-4 md:flex items-end">
+            <div className="flex-1 space-y-2">
+              <label htmlFor="excel-minimos-file" className="text-sm font-medium leading-none">
+                Subir Excel de Datos Mínimos
+              </label>
+              <Input
+                id="excel-minimos-file"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleMinimosFileChange}
+                disabled={isUploading}
+              />
+            </div>
+            <Button
+              onClick={handleUploadMinimos}
+              disabled={!minimosFile || isUploading}
+              className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Upload className="h-4 w-4" />
+              {isUploading ? 'Procesando...' : 'Importar Mínimos'}
+            </Button>
+          </div>
+
+          {result && result.success && result.data?.resultado && (
+            <div className="mt-2 p-4 border border-green-200 bg-green-50 rounded-lg">
+              <h3 className="flex items-center gap-2 font-medium text-green-800">
+                <CheckCircle2 className="h-5 w-5" />
+                Resumen de Mínimos
+              </h3>
+              <ul className="mt-2 space-y-1 text-sm text-green-700 pl-7 list-disc">
+                <li>Modelos creados: <strong>{result.data.resultado.creados || 0}</strong></li>
+                <li>Modelos actualizados: <strong>{result.data.resultado.actualizados || 0}</strong></li>
+                <li>Familias nuevas: <strong>{result.data.resultado.familias || 0}</strong></li>
+                <li>Omitidos por marca inexistente: <strong>{result.data.resultado.omitidos_marca || 0}</strong></li>
+                {result.data.resultado.errores > 0 && (
+                  <li className="text-amber-700">Filas con error: <strong>{result.data.resultado.errores}</strong></li>
+                )}
+              </ul>
+            </div>
+          )}
         </CardContent>
       </Card>
 

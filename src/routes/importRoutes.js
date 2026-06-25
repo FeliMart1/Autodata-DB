@@ -6,6 +6,7 @@ const {
   importarExcelAutos,
   importarExcelPrecios,
   importarExcelCompleto,
+  importarExcelMinimos,
   descargarTemplateCompleto,
   listarBatches,
   obtenerBatch,
@@ -21,6 +22,9 @@ router.post('/excel-completo', upload.single('file'), importarExcelCompleto);
 
 // POST /api/import/excel-modelos - Subir Excel respetando IDs originales
 router.post('/excel-modelos', upload.single('file'), importarExcelAutos);
+
+// POST /api/import/excel-minimos - Sube SOLO datos mínimos (sin equipamiento) → estado minimos_aprobados
+router.post('/excel-minimos', upload.single('file'), importarExcelMinimos);
 
 // POST /api/import/excel-precios - Subir Excel con lista de precios tabulada
 router.post('/excel-precios', upload.single('file'), importarExcelPrecios);
