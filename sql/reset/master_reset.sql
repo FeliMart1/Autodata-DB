@@ -715,6 +715,7 @@ GO
 
 PRINT 'Índices creados.';
 PRINT '';
+GO
 
 -- ============================================================
 -- PASO 6: VIEWS
@@ -800,6 +801,7 @@ GO
 
 PRINT 'Vistas creadas.';
 PRINT '';
+GO
 
 -- ============================================================
 -- PASO 7: STORED PROCEDURES
