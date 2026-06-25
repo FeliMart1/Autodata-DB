@@ -969,8 +969,15 @@ const importarExcelMinimos = async (req, res) => {
     const xlsx = require('xlsx');
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
-    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null, range: 1 });
     const dataRaw = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: null });
+
+    // Detectar el formato del encabezado:
+    //  - Plantilla Maestra completa: fila 1 = códigos numéricos, fila 2 = nombres → headers en índice 1.
+    //  - Plantilla de mínimos: fila 1 = nombres directamente → headers en índice 0.
+    const primeraFila = (dataRaw[0] || []).filter(c => c !== null && String(c).trim() !== '');
+    const esFilaDeCodigos = primeraFila.length > 0 && primeraFila.every(c => /^\d+$/.test(String(c).trim()));
+    const headerRange = esFilaDeCodigos ? 1 : 0;
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null, range: headerRange });
     let rawRowIndex = 0;
 
     const resultado = { creados: 0, actualizados: 0, familias: 0, omitidos_marca: 0, errores: 0 };
@@ -983,7 +990,7 @@ const importarExcelMinimos = async (req, res) => {
         for (const key in row) {
           if (key !== '__rawRow') normRow[normalizeKey(key)] = row[key];
         }
-        const rawRow = dataRaw[rawRowIndex + 2] || [];
+        const rawRow = dataRaw[rawRowIndex + headerRange + 1] || [];
         rawRowIndex++;
 
         const codMarcaRaw = normRow['codigomarca'] || normRow['codmarca'] || row['Codigo_Marca'] || row['Codigo Marca'] || '';
