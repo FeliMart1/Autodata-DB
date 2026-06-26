@@ -2,6 +2,7 @@
 const { parse } = require('csv-parse/sync');
 const db = require('../config/db-simple');
 const logger = require('../config/logger');
+const { asegurarEquipamientoVacio } = require('../utils/modeloHelper');
 
 const xlsx = require('xlsx');
 
@@ -397,6 +398,9 @@ const procesarBatch = async (req, res) => {
         const nuevoModelo = await db.insert('Modelo', modeloData);
         const modeloId = nuevoModelo.ModeloID;
 
+        // Unificación: todo modelo arranca con su fila 1:1 de equipamiento (vacía)
+        await asegurarEquipamientoVacio(modeloId);
+
         // 3. Crear versión si hay datos
         if (reg.version) {
           await db.insert('VersionModelo', {
@@ -594,6 +598,8 @@ const importarExcelAutos = async (req, res) => {
         if (mod.precio != null && !isNaN(mod.precio)) {
           await db.queryWithParams(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Precio importado Excel', GETDATE())`, [modeloIdDb, mod.precio]);
         }
+        // Unificación: todo modelo importado arranca con su fila 1:1 de equipamiento (vacía)
+        await asegurarEquipamientoVacio(modeloIdDb);
       }
     }
     return res.json({ success: true, message: 'Importación completada', data: { creados } });
@@ -723,6 +729,14 @@ const importarExcelCompleto = async (req, res) => {
       if (normRow['tablerodigital3d'] !== undefined && normRow['tablerdigital3d'] === undefined) {
         normRow['tablerdigital3d'] = normRow['tablerodigital3d'];
       }
+      // Alias: el header legacy "C_3raFiladeasientoselctricos" del template mapea a la columna limpia TerceraFilaAsientosElectricos.
+      if (normRow['c3rafiladeasientoselctricos'] !== undefined && normRow['tercerafilaasientoselectricos'] === undefined) {
+        normRow['tercerafilaasientoselectricos'] = normRow['c3rafiladeasientoselctricos'];
+      }
+      // Alias: header legacy "AutonomadelmotorelctricoBEVyPHEV" → columna limpia AutonomiaMotorElectricoBEVPHEV (dato propio, NO duplica AutonomiaMaxRange).
+      if (normRow['autonomadelmotorelctricobevyphev'] !== undefined && normRow['autonomiamotorelectricobevphev'] === undefined) {
+        normRow['autonomiamotorelectricobevphev'] = normRow['autonomadelmotorelctricobevyphev'];
+      }
 
       // Aliases para las columnas duplicadas al final del Excel (índices 180-183) cuyos nombres abreviados
       // no coinciden con los nombres reales de la DB. Solo se aplican si la columna correcta aún no tiene valor.
@@ -735,9 +749,8 @@ const importarExcelCompleto = async (req, res) => {
       // [181] Asientosconmasajeadornmero    → DB: AsientosMasajeador
       if (normRow['asientosconmasajeadornmero'] !== undefined && normRow['asientosmasajeador'] === undefined)
         normRow['asientosmasajeador'] = normRow['asientosconmasajeadornmero'];
-      // [182] AutonomadelmotorelctricoBEVyPHEV → DB: AutonomiaMaxRange
-      if (normRow['autonomadelmotorelctricobevyphev'] !== undefined && normRow['autonomiamaxrange'] === undefined)
-        normRow['autonomiamaxrange'] = normRow['autonomadelmotorelctricobevyphev'];
+      // [182] AutonomadelmotorelctricoBEVyPHEV → ya mapeado arriba a su columna propia
+      //       AutonomiaMotorElectricoBEVPHEV (NO se mapea a AutonomiaMaxRange: son datos distintos).
       // [183] Apoyabrazocentraldeasientotrasero → DB: ApoyabrazosCentralTrasero
       if (normRow['apoyabrazocentraldeasientotrasero'] !== undefined && normRow['apoyabrazoscentraltrasero'] === undefined)
         normRow['apoyabrazoscentraltrasero'] = normRow['apoyabrazocentraldeasientotrasero'];
@@ -944,6 +957,10 @@ const importarExcelCompleto = async (req, res) => {
           creados.equipamiento_errors = (creados.equipamiento_errors || 0) + 1;
         }
       }
+
+      // Unificación: si el modelo no recibió payload de equipamiento, igual queda
+      // con su fila 1:1 vacía para mantener la misma estructura que el resto.
+      await asegurarEquipamientoVacio(modeloIdDb);
     }
 
     return res.status(200).json({
@@ -957,12 +974,207 @@ const importarExcelCompleto = async (req, res) => {
   }
 };
 
+// POST /api/import/excel-minimos
+// Importa SOLO datos mínimos (sin equipamiento). Acepta el mismo formato de la
+// Plantilla Maestra (ignora las columnas de equipamiento). Los modelos quedan en
+// estado 'minimos_aprobados' (listos para cargar equipamiento). Upsert: si el
+// modelo ya existe, rellena/actualiza sus datos mínimos SIN tocar equipamiento ni precio.
+const importarExcelMinimos = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'Archivo no proporcionado.' });
+
+    const xlsx = require('xlsx');
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const dataRaw = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: null });
+
+    // Detectar el formato del encabezado:
+    //  - Plantilla Maestra completa: fila 1 = códigos numéricos, fila 2 = nombres → headers en índice 1.
+    //  - Plantilla de mínimos: fila 1 = nombres directamente → headers en índice 0.
+    const primeraFila = (dataRaw[0] || []).filter(c => c !== null && String(c).trim() !== '');
+    const esFilaDeCodigos = primeraFila.length > 0 && primeraFila.every(c => /^\d+$/.test(String(c).trim()));
+    const headerRange = esFilaDeCodigos ? 1 : 0;
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null, range: headerRange });
+    let rawRowIndex = 0;
+
+    const resultado = { creados: 0, actualizados: 0, familias: 0, omitidos_marca: 0, errores: 0 };
+    const marcaIdMap = new Map();
+    const familiaIdMap = new Map();
+
+    for (const row of data) {
+      try {
+        const normRow = {};
+        for (const key in row) {
+          if (key !== '__rawRow') normRow[normalizeKey(key)] = row[key];
+        }
+        const rawRow = dataRaw[rawRowIndex + headerRange + 1] || [];
+        rawRowIndex++;
+
+        const codMarcaRaw = normRow['codigomarca'] || normRow['codmarca'] || row['Codigo_Marca'] || row['Codigo Marca'] || '';
+        const codMarcaDigits = String(codMarcaRaw).replace(/\D+/g, '').trim();
+        if (!codMarcaDigits) continue;
+        const codMarca = codMarcaDigits.padStart(4, '0').slice(-4);
+        const marcaDesc = String(normRow['marca'] || row['Marca'] || '').trim();
+
+        const codModeloRaw = normRow['codigomodelo'] || normRow['codmodelo'] || row['Codigo_Modelo'] || row['Codigo Modelo'] || '';
+        const codModeloDigits = String(codModeloRaw).replace(/\D+/g, '').trim();
+        if (!codModeloDigits) continue;
+        const codModelo = codModeloDigits.padStart(4, '0').slice(-4);
+        const modeloDesc = String(normRow['descripcionmodelo'] || row['Descripcion_Modelo'] || '').trim();
+        const familiaDesc = normRow['familia'] ? String(normRow['familia']).trim() : null;
+
+        let codigoAutodata = String(normRow['codconcatenado'] || normRow['codigoconcatenado'] || row['CODIGO CONCATENADO'] || '').trim();
+        if (!codigoAutodata) codigoAutodata = `${codMarca}${codModelo}`;
+        if (codigoAutodata.length > 8) codigoAutodata = codigoAutodata.substring(0, 8);
+
+        // 1. Marca: solo lookup (no se crean marcas desde el import de mínimos)
+        if (!marcaIdMap.has(codMarca)) {
+          const marcaIdInt = parseInt(codMarca, 10);
+          if (Number.isNaN(marcaIdInt)) continue;
+          const codMarcaSinCeros = String(marcaIdInt);
+          let marcaExists = await execWithDebug(
+            `SELECT TOP 1 MarcaID FROM Marca WHERE CodigoMarca = @p0 OR CodigoMarca = @p1`,
+            [codMarca, codMarcaSinCeros]
+          );
+          if (marcaExists.length === 0 && marcaDesc) {
+            marcaExists = await execWithDebug(
+              `SELECT TOP 1 MarcaID FROM Marca WHERE LTRIM(RTRIM(Descripcion)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(@p0)) COLLATE Latin1_General_CI_AI
+               OR LTRIM(RTRIM(Descripcion)) COLLATE Latin1_General_CI_AI LIKE LTRIM(RTRIM(@p0)) + ' %' COLLATE Latin1_General_CI_AI`,
+              [marcaDesc, marcaDesc]
+            );
+          }
+          if (marcaExists.length === 0) { resultado.omitidos_marca++; continue; }
+          marcaIdMap.set(codMarca, marcaExists[0].MarcaID);
+        }
+        const dbMarcaId = marcaIdMap.get(codMarca);
+        if (!dbMarcaId) continue;
+
+        // 1.1 Familia (resolver/crear para selectores de ventas/empadronamientos)
+        let familiaId = null;
+        if (familiaDesc) {
+          const familiaKey = `${dbMarcaId}|${familiaDesc.toLowerCase()}`;
+          if (familiaIdMap.has(familiaKey)) {
+            familiaId = familiaIdMap.get(familiaKey);
+          } else {
+            const famExists = await execWithDebug(
+              `SELECT TOP 1 FamiliaID FROM Familia WHERE MarcaID = @p0 AND LTRIM(RTRIM(Nombre)) COLLATE Latin1_General_CI_AI = LTRIM(RTRIM(@p1)) COLLATE Latin1_General_CI_AI`,
+              [dbMarcaId, familiaDesc]
+            );
+            if (famExists.length > 0) familiaId = famExists[0].FamiliaID;
+            else {
+              const famInsert = await execWithDebug(
+                `INSERT INTO Familia (MarcaID, Nombre, Activo, FechaCreacion) OUTPUT INSERTED.FamiliaID VALUES (@p0, @p1, 1, GETDATE())`,
+                [dbMarcaId, familiaDesc]
+              );
+              if (famInsert.length > 0) { familiaId = famInsert[0].FamiliaID; resultado.familias++; }
+            }
+            if (familiaId) familiaIdMap.set(familiaKey, familiaId);
+          }
+        }
+
+        // Datos mínimos (mismo parseo que la Plantilla Maestra)
+        const anioNum = toNum(normRow['año'] || normRow['anio'], 'int');
+        const segmentoDesc = String(normRow['categoria'] || '').trim() || null;
+        const tipoRaw = String(rawRow[187] != null ? rawRow[187] : (normRow['tipo'] || '')).trim();
+        const tipoDesc = tipoRaw || null;
+        const carroceriaDesc = String(normRow['tipo2carrocera'] || normRow['carrocería'] || normRow['carroceria'] || '').trim() || null;
+        const origenDesc = String(normRow['origen'] || '').trim() || null;
+        const importadorDesc = String(normRow['importador'] || '').trim() || null;
+        const tipoMotorDesc = String(normRow['tipomotor'] || '').trim() || null;
+        const vehiculoElectricoDesc = String(normRow['tipodevehículoelectrico/híbrido'] || normRow['tipovehiculoelectrico/hibrido'] || normRow['tipovehiculoelectrico'] || '').trim() || null;
+        const tipoCajaDesc = String(normRow['caja'] || '').trim() || null;
+        const cilinCcNum = toNum(normRow['cc'], 'int');
+        const potenciaHpNum = toNum(normRow['hpcv'] || normRow['hp'] || normRow['potencia'], 'int');
+        const cilindrosNum = toNum(normRow['cilindros'], 'int');
+        const valvulasNum = toNum(normRow['valvulas'] || normRow['válvulas'] || normRow['vlvulas'], 'int');
+        const puertasNum = toNum(normRow['numeropuertas'] || normRow['puertas'] || normRow['ndepuertas'], 'int');
+        const asientosNum = toNum(normRow['numeroasientos'] || normRow['asientos'] || normRow['nmerodeasientos'], 'int');
+        const combDesc = String(normRow['combustible'] || '').trim() || null;
+        const precioNum = toNum(normRow['preciousd'] || row['Precio_USD'], 'decimal');
+
+        const modExists = await execWithDebug(
+          `SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`,
+          [codigoAutodata, dbMarcaId, codModelo]
+        );
+
+        if (modExists.length > 0) {
+          // Existe: rellenar/actualizar SOLO datos mínimos (COALESCE = no pisa con vacío).
+          // NO toca equipamiento ni precio.
+          const modeloIdDb = modExists[0].ModeloID;
+          await execWithDebug(`
+            UPDATE Modelo SET
+              DescripcionModelo     = COALESCE(@p1, DescripcionModelo),
+              Familia               = COALESCE(@p2, Familia),
+              FamiliaID             = COALESCE(@p3, FamiliaID),
+              Anio                  = COALESCE(@p4, Anio),
+              SegmentacionAutodata  = COALESCE(@p5, SegmentacionAutodata),
+              Carroceria            = COALESCE(@p6, Carroceria),
+              OrigenCodigo          = COALESCE(@p7, OrigenCodigo),
+              Importador            = COALESCE(@p8, Importador),
+              TipoMotor             = COALESCE(@p9, TipoMotor),
+              TipoVehiculoElectrico = COALESCE(@p10, TipoVehiculoElectrico),
+              TipoCajaAut           = COALESCE(@p11, TipoCajaAut),
+              CC                    = COALESCE(@p12, CC),
+              HP                    = COALESCE(@p13, HP),
+              Cilindros             = COALESCE(@p14, Cilindros),
+              Valvulas              = COALESCE(@p15, Valvulas),
+              Puertas               = COALESCE(@p16, Puertas),
+              Asientos              = COALESCE(@p17, Asientos),
+              CombustibleCodigo     = COALESCE(@p18, CombustibleCodigo),
+              Tipo                  = COALESCE(@p19, Tipo),
+              Estado                = 'minimos_aprobados',
+              FechaModificacion     = GETDATE()
+            WHERE ModeloID = @p0
+          `, [modeloIdDb, modeloDesc || null, familiaDesc, familiaId, anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc, tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum, cilindrosNum, valvulasNum, puertasNum, asientosNum, combDesc, tipoDesc]);
+          await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'minimos_aprobados', 'ImportMinimos')`, [modeloIdDb]);
+          await asegurarEquipamientoVacio(modeloIdDb);
+          resultado.actualizados++;
+        } else {
+          // Nuevo: crear con datos mínimos + precio + fila de equipamiento vacía.
+          const insertRes = await execWithDebug(`
+            INSERT INTO Modelo (
+              MarcaID, DescripcionModelo, CodigoModelo, CodigoAutodata, Familia, FamiliaID,
+              Anio, SegmentacionAutodata, Carroceria, OrigenCodigo, Importador,
+              TipoMotor, TipoVehiculoElectrico, TipoCajaAut, CC, HP,
+              Cilindros, Valvulas, Puertas, Asientos, PrecioInicial, CombustibleCodigo, Tipo,
+              Estado, Activo
+            ) OUTPUT INSERTED.ModeloID VALUES (
+              @p0, @p1, @p2, @p3, @p4, @p5,
+              @p6, @p7, @p8, @p9, @p10,
+              @p11, @p12, @p13, @p14, @p15,
+              @p16, @p17, @p18, @p19, @p20, @p21, @p22,
+              'minimos_aprobados', 1
+            )`,
+            [dbMarcaId, modeloDesc, codModelo, codigoAutodata, familiaDesc, familiaId, anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc, tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum, cilindrosNum, valvulasNum, puertasNum, asientosNum, precioNum, combDesc, tipoDesc]
+          );
+          const modeloIdDb = insertRes[0].ModeloID;
+          await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'minimos_aprobados', 'ImportMinimos')`, [modeloIdDb]);
+          if (precioNum !== null) {
+            await execWithDebug(`INSERT INTO PrecioModelo (ModeloID, Precio, Moneda, FechaVigenciaDesde, Fuente, FechaCarga) VALUES (@p0, @p1, 'USD', GETDATE(), 'Import Minimos', GETDATE())`, [modeloIdDb, precioNum]);
+          }
+          await asegurarEquipamientoVacio(modeloIdDb);
+          resultado.creados++;
+        }
+      } catch (rowErr) {
+        logger.warn(`Error import mínimos en una fila: ${rowErr.message}`);
+        resultado.errores++;
+      }
+    }
+
+    return res.status(200).json({ success: true, message: 'Importación de datos mínimos completada', data: { resultado } });
+  } catch (error) {
+    logger.error('Error procesando import de mínimos:', error);
+    return res.status(500).json({ success: false, message: 'Error en la importación de mínimos: ' + error.message });
+  }
+};
+
 module.exports = {
   upload,
   importarExcelAutos,
   importarExcelPrecios,
   importarCSV,
   importarExcelCompleto,
+  importarExcelMinimos,
   descargarTemplateCompleto,
   listarBatches,
   obtenerBatch,

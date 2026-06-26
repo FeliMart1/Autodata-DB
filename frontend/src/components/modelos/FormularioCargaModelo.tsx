@@ -55,10 +55,9 @@ export const FormularioCargaModelo: React.FC<FormularioCargaModeloProps> = ({
     const payload = {
       ...formData,
       marcaId: Number(formData.id_marca),
-      id_marca: Number(formData.id_marca),
-      EstadoID: 2 // Assuming 2 means MINIMOS_APROBADOS/CREADO (not definitivo/en_revision yet)
+      id_marca: Number(formData.id_marca)
     };
-    
+
     await onSave(payload as CreateModeloRequest & { marcaId?: number });
   };
 
@@ -72,10 +71,9 @@ export const FormularioCargaModelo: React.FC<FormularioCargaModeloProps> = ({
     const payload = {
       ...formData,
       marcaId: Number(formData.id_marca),
-      id_marca: Number(formData.id_marca),
-      EstadoID: 3 // Assuming 3 means "EN_REVISION"
+      id_marca: Number(formData.id_marca)
     };
-    
+
     await onSave(payload as CreateModeloRequest & { marcaId?: number });
   };
 

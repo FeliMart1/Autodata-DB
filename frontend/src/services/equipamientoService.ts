@@ -4,10 +4,12 @@ import { EquipamientoModelo } from '@/types/index';
 export const equipamientoService = {
   getByModeloId: async (idModelo: number): Promise<EquipamientoModelo | null> => {
     const response = await apiClient.get(`/equipamiento/modelo/${idModelo}`);
-    // El backend devuelve { success: true, data: null } cuando no existe registro.
-    // Usamos !== undefined para distinguir null (sin registro) de un objeto válido.
-    const data = response.data?.data;
-    return data !== undefined ? data : response.data;
+    const data = response.data?.data || response.data;
+    // Adjuntamos el esquema (columna+tipo) para que el form auto-genere los campos no curados.
+    if (data && response.data?.schema) {
+      (data as any).__schema = response.data.schema;
+    }
+    return data;
   },
 
   create: async (data: Partial<EquipamientoModelo>): Promise<EquipamientoModelo> => {

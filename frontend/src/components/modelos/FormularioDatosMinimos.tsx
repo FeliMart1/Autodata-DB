@@ -31,6 +31,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
     SegmentacionAutodata: modelo.SegmentacionAutodata || '',
     Carroceria: modelo.Carroceria || '',
     OrigenCodigo: modelo.OrigenCodigo || '',
+    CombustibleCodigo: modelo.CombustibleCodigo || '',
     Cilindros: modelo.Cilindros ?? undefined,
     Valvulas: modelo.Valvulas ?? undefined,
     CC: modelo.CC ?? undefined,
@@ -72,6 +73,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
       SegmentacionAutodata: modelo.SegmentacionAutodata || '',
       Carroceria: modelo.Carroceria || '',
       OrigenCodigo: modelo.OrigenCodigo || '',
+      CombustibleCodigo: modelo.CombustibleCodigo || '',
       Cilindros: modelo.Cilindros ?? undefined,
       Valvulas: modelo.Valvulas ?? undefined,
       CC: modelo.CC ?? undefined,
@@ -298,6 +300,27 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   <option value="PHEV">PHEV</option>
                   <option value="N/A">N/A</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Combustible
+                </label>
+                <input
+                  list="combustibles"
+                  value={formData.CombustibleCodigo || ''}
+                  onChange={(e) => handleChange('CombustibleCodigo', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                  disabled={readonly}
+                  placeholder="Seleccionar o escribir..."
+                />
+                <datalist id="combustibles">
+                  <option value="NAFTA" />
+                  <option value="DIESEL" />
+                  <option value="ELÉCTRICO" />
+                  <option value="HÍBRIDO" />
+                  <option value="GNC" />
+                </datalist>
               </div>
 
               <div>

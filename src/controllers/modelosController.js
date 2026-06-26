@@ -1,5 +1,6 @@
 const db = require('../config/db-simple');
 const logger = require('../config/logger');
+const { asegurarEquipamientoVacio } = require('../utils/modeloHelper');
 const { generarCodigoAutodata, obtenerProximoCodigoModelo, formatToCodigo4 } = require('../utils/codigoAutodata');
 const {
   ESTADOS,
@@ -285,7 +286,8 @@ exports.create = async (req, res) => {
     if (hp) { campos.push('HP'); valores.push(hp); }
     if (traccion) { campos.push('Traccion'); valores.push(`N'${traccion.replace(/'/g, "''")}'`); }
     if (caja) { campos.push('Caja'); valores.push(`N'${caja.replace(/'/g, "''")}'`); }
-    if (tipo_caja) { campos.push('TipoCaja'); valores.push(`N'${tipo_caja.replace(/'/g, "''")}'`); }
+    // Caja canónica unificada: usar TipoCajaAut (mismo campo que Datos Mínimos), no TipoCaja
+    if (tipo_caja) { campos.push('TipoCajaAut'); valores.push(`N'${tipo_caja.replace(/'/g, "''")}'`); }
     if (turbo !== undefined) { campos.push('Turbo'); valores.push(turbo ? '1' : '0'); }
     if (puertas) { campos.push('Puertas'); valores.push(puertas); }
     if (pasajeros) { campos.push('Pasajeros'); valores.push(pasajeros); }
@@ -328,6 +330,9 @@ exports.create = async (req, res) => {
         `;
         await db.queryRaw(precioQuery);
       }
+
+      // Unificación: todo modelo arranca con su fila 1:1 de equipamiento (vacía)
+      await asegurarEquipamientoVacio(modeloId);
     }
     
     // Obtener el modelo creado
@@ -415,7 +420,7 @@ exports.update = async (req, res) => {
       'turbo': 'Turbo',
       'traccion': 'Traccion',
       'caja': 'Caja',
-      'tipo_caja': 'TipoCaja',
+      'tipo_caja': 'TipoCajaAut',
       'puertas': 'Puertas',
       'pasajeros': 'Pasajeros',
       'estado': 'Estado',

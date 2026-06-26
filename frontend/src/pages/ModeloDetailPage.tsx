@@ -10,7 +10,6 @@ import { FormularioCargaModelo } from '@components/modelos/FormularioCargaModelo
 import { FormularioDatosMinimos } from '@components/modelos/FormularioDatosMinimos';
 import { ModeloDetailView } from '@components/modelos/ModeloDetailView';
 import { EquipamientoView } from '@components/equipamiento/EquipamientoView';
-import { EquipamientoForm } from '@components/equipamiento/EquipamientoForm';
 import { PreciosView } from '@components/precios/PreciosView';
 import { HistorialSection } from '@components/historial/HistorialSection';
 import { VentasHistorial } from '@components/ventas/VentasHistorial';

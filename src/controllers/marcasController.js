@@ -126,13 +126,13 @@ exports.create = async (req, res) => {
       `);
       logger.info(`Marca existente actualizada (ID: ${resultMarcaId})`);
     } else {
-      // Insertar nueva marca con MarcaID explícito (columna no-IDENTITY, INSERT directo)
+      // Marca.MarcaID no tiene IDENTITY: se inserta el ID explícito directo, sin IDENTITY_INSERT.
       await db.queryRaw(`
-        INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) 
-        VALUES (${marcaIdInt}, '${normCod}', N'${marca.trim()}', ${paisOrigen && paisOrigen.trim() ? `N'${paisOrigen.trim()}'` : 'NULL'})
+        INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen)
+        VALUES (${marcaIdInt}, '${normCod}', N'${marca.trim()}', ${paisOrigen && paisOrigen.trim() ? `N'${paisOrigen.trim()}'` : 'NULL'});
       `);
       resultMarcaId = marcaIdInt;
-      logger.info(`Marca creada con ID: ${resultMarcaId} y CodigoMarca: ${normCod}`);
+      logger.info(`Marca creada con explícito ID: ${resultMarcaId} y CodigoMarca: ${normCod}`);
     }
 
     // Obtener la marca creada/actualizada
@@ -312,9 +312,9 @@ exports.importarExcel = async (req, res) => {
         continue;
       }
       
-      // INSERT con MarcaID explícito (columna no-IDENTITY, INSERT directo)
+      // Marca.MarcaID no tiene IDENTITY: se inserta el ID explícito directo, sin IDENTITY_INSERT.
       await db.queryRaw(
-        `INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) VALUES (${marcaIdInt}, '${marcod}', N'${mardsc.replace(/'/g, "''")}', N'${(origen || '').replace(/'/g, "''")}')`,
+        `INSERT INTO Marca (MarcaID, CodigoMarca, Descripcion, Origen) VALUES (${marcaIdInt}, '${marcod}', N'${mardsc.replace(/'/g, "''")}', N'${(origen || '').replace(/'/g, "''")}')`
       );
       procesadas++;
     }
