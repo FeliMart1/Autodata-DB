@@ -4,6 +4,7 @@ import { Badge } from '@components/ui/Badge';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { Alert } from '@components/ui/Alert';
 import { equipamientoService } from '@services/equipamientoService';
+import { labelEquip } from '@components/equipamiento/equipamientoLabels';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
 interface EquipamientoViewProps {
@@ -104,14 +105,8 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     return v !== null && v !== undefined && v !== '';
   });
 
-  // Format a key like 'AsientoConductorElectrico' to 'Asiento Conductor Electrico'
-  const labelMap: Record<string, string> = {
-    Caja: "Tipo de Caja Autom\u00e1tica",
-  };
-  const formatLabel = (key: string) => {
-    if (labelMap[key]) return labelMap[key];
-    return key.replace(/([A-Z])/g, ' $1').trim();
-  };
+  // Etiquetas legibles compartidas con el form de equipamiento.
+  const formatLabel = (key: string) => labelEquip(key);
 
   return (
     <div className="space-y-6">

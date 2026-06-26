@@ -3,6 +3,7 @@ import { EquipamientoModelo } from '@/types';
 import { Card, CardContent, CardTitle } from '@components/ui/Card';
 import { ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { Button } from '@components/ui/Button';
+import { labelEquip } from '@components/equipamiento/equipamientoLabels';
 
 interface FormularioEquipamientoProps {
   equipamiento: Partial<EquipamientoModelo>;
@@ -38,10 +39,6 @@ const CATEGORIAS: { titulo: string; columnas: string[] }[] = [
   { titulo: 'Performance EV', columnas: ['AceleracionBEV_0a100', 'AccelerationICE', 'CargaElectricaWireless', 'CargaElectricaInduccion', 'CableElectricoTipo3Incluido'] },
   { titulo: 'Chasis', columnas: ['ChassisDriveSelect', 'ChassisSportSuspension', 'DireccionCuatroRuedas', 'LucesLaser', 'DashboardDisplayConfigurable', 'WirelessSmartphoneIntegration', 'MobilePhoneAntenna', 'DeflectorViento', 'AsientosDeportivos'] }
 ];
-
-// "FarosNeblina" -> "Faros Neblina", "EBD_EBV_REF" -> "EBD EBV REF"
-const humanizar = (col: string): string =>
-  col.replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\s+/g, ' ').trim();
 
 export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   equipamiento,
@@ -102,7 +99,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
 
     return (
       <div key={col} className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-slate-700 leading-tight break-words">{humanizar(col)}</label>
+        <label className="text-sm font-medium text-slate-700 leading-tight break-words">{labelEquip(col)}</label>
         {esBit ? (
           <label className="flex items-center gap-2 h-10">
             <input
