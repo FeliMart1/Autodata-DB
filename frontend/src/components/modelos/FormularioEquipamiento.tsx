@@ -81,6 +81,14 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   const handleAction = async (action: 'save' | 'revision') => {
     // No enviamos __schema (metadato del front) al backend.
     const { __schema, ...payload } = formData as any;
+    // Al guardar manualmente: todo campo checkbox (bit) que no quedó marcado se persiste
+    // como "No" (false), no como "—". Los campos de texto/número vacíos quedan en null ("—").
+    for (const { column, type } of schemaCols) {
+      if (type === 'bit') {
+        const v = payload[column];
+        payload[column] = (v === true || v === 1 || v === '1' || v === 'Si');
+      }
+    }
     if (action === 'save' && onSave) await onSave(payload);
     if (action === 'revision' && onSendRevision) await onSendRevision(payload);
   };
@@ -96,16 +104,16 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
       <div key={col} className="flex flex-col gap-1.5">
         <label className="text-sm font-medium text-slate-700 leading-tight break-words">{humanizar(col)}</label>
         {esBit ? (
-          <select
-            disabled={readonly}
-            value={val === true || val === 1 || val === '1' || val === 'Si' ? 'Si' : (val === false || val === 0 || val === '0' || val === 'No' ? 'No' : '')}
-            onChange={(e) => handleChange(col, e.target.value === 'Si' ? true : (e.target.value === 'No' ? false : undefined))}
-            className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50 bg-white"
-          >
-            <option value="">—</option>
-            <option value="Si">Sí</option>
-            <option value="No">No</option>
-          </select>
+          <label className="flex items-center gap-2 h-10">
+            <input
+              type="checkbox"
+              disabled={readonly}
+              checked={val === true || val === 1 || val === '1' || val === 'Si'}
+              onChange={(e) => handleChange(col, e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-brand-blue"
+            />
+            <span className="text-sm text-slate-500">{(val === true || val === 1 || val === '1' || val === 'Si') ? 'Sí' : 'No'}</span>
+          </label>
         ) : esNum ? (
           <input
             type="number"
