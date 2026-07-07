@@ -997,7 +997,7 @@ const importarExcelMinimos = async (req, res) => {
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null, range: headerRange });
     let rawRowIndex = 0;
 
-    const resultado = { creados: 0, actualizados: 0, preservados: 0, familias: 0, omitidos_marca: 0, errores: 0 };
+    const resultado = { creados: 0, preservados: 0, familias: 0, omitidos_marca: 0, errores: 0 };
     const marcaIdMap = new Map();
     const familiaIdMap = new Map();
 
@@ -1093,53 +1093,19 @@ const importarExcelMinimos = async (req, res) => {
         const precioNum = toNum(normRow['preciousd'] || row['Precio_USD'], 'decimal');
 
         const modExists = await execWithDebug(
-          `SELECT ModeloID, Estado FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`,
+          `SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`,
           [codigoAutodata, dbMarcaId, codModelo]
         );
 
         if (modExists.length > 0) {
-          const modeloIdDb = modExists[0].ModeloID;
-          const estadoActual = modExists[0].Estado;
+          // El import de mínimos NO pisa modelos existentes (ni en 'minimos_aprobados' ni en
+          // 'definitivo' ni en ningún otro estado): solo crea los que aún no existen.
+          // Los existentes se dejan intactos.
+          resultado.preservados = (resultado.preservados || 0) + 1;
+          continue;
+        }
 
-          // No pisar modelos que ya avanzaron a la fase de equipamiento o que están
-          // en definitivo: bajarlos a 'minimos_aprobados' perdería trabajo ya cargado.
-          const ESTADOS_PROTEGIDOS = ['equipamiento_cargado', 'revision_equipamiento', 'corregir_equipamiento', 'definitivo'];
-          if (ESTADOS_PROTEGIDOS.includes(estadoActual)) {
-            resultado.preservados = (resultado.preservados || 0) + 1;
-            continue;
-          }
-
-          // Existe y aún no cargó equipamiento: rellenar/actualizar SOLO datos mínimos
-          // (COALESCE = no pisa con vacío). NO toca equipamiento ni precio.
-          await execWithDebug(`
-            UPDATE Modelo SET
-              DescripcionModelo     = COALESCE(@p1, DescripcionModelo),
-              Familia               = COALESCE(@p2, Familia),
-              FamiliaID             = COALESCE(@p3, FamiliaID),
-              Anio                  = COALESCE(@p4, Anio),
-              SegmentacionAutodata  = COALESCE(@p5, SegmentacionAutodata),
-              Carroceria            = COALESCE(@p6, Carroceria),
-              OrigenCodigo          = COALESCE(@p7, OrigenCodigo),
-              Importador            = COALESCE(@p8, Importador),
-              TipoMotor             = COALESCE(@p9, TipoMotor),
-              TipoVehiculoElectrico = COALESCE(@p10, TipoVehiculoElectrico),
-              TipoCajaAut           = COALESCE(@p11, TipoCajaAut),
-              CC                    = COALESCE(@p12, CC),
-              HP                    = COALESCE(@p13, HP),
-              Cilindros             = COALESCE(@p14, Cilindros),
-              Valvulas              = COALESCE(@p15, Valvulas),
-              Puertas               = COALESCE(@p16, Puertas),
-              Asientos              = COALESCE(@p17, Asientos),
-              CombustibleCodigo     = COALESCE(@p18, CombustibleCodigo),
-              Tipo                  = COALESCE(@p19, Tipo),
-              Estado                = 'minimos_aprobados',
-              FechaModificacion     = GETDATE()
-            WHERE ModeloID = @p0
-          `, [modeloIdDb, modeloDesc || null, familiaDesc, familiaId, anioNum, segmentoDesc, carroceriaDesc, origenDesc, importadorDesc, tipoMotorDesc, vehiculoElectricoDesc, tipoCajaDesc, cilinCcNum, potenciaHpNum, cilindrosNum, valvulasNum, puertasNum, asientosNum, combDesc, tipoDesc]);
-          await execWithDebug(`INSERT INTO ModeloHistorial (ModeloID, Campo, ValorAnterior, ValorNuevo, Usuario) VALUES (@p0, 'Estado', NULL, 'minimos_aprobados', 'ImportMinimos')`, [modeloIdDb]);
-          await asegurarEquipamientoVacio(modeloIdDb);
-          resultado.actualizados++;
-        } else {
+        {
           // Nuevo: crear con datos mínimos + precio + fila de equipamiento vacía.
           const insertRes = await execWithDebug(`
             INSERT INTO Modelo (

@@ -90,7 +90,7 @@ export function ImportPage() {
 
       setResult(response.data);
       const r = response.data?.data?.resultado || {};
-      addToast(`Mínimos: ${r.creados || 0} creados, ${r.actualizados || 0} actualizados, ${r.preservados || 0} preservados (definitivo).`, 'success');
+      addToast(`Mínimos: ${r.creados || 0} creados, ${r.preservados || 0} ya existían (no se tocaron).`, 'success');
       setMinimosFile(null);
 
       const fileInput = document.getElementById('excel-minimos-file') as HTMLInputElement;
@@ -231,8 +231,7 @@ export function ImportPage() {
               </h3>
               <ul className="mt-2 space-y-1 text-sm text-green-700 pl-7 list-disc">
                 <li>Modelos creados: <strong>{result.data.resultado.creados || 0}</strong></li>
-                <li>Modelos actualizados: <strong>{result.data.resultado.actualizados || 0}</strong></li>
-                <li>Preservados (ya en definitivo/equipamiento, no se tocaron): <strong>{result.data.resultado.preservados || 0}</strong></li>
+                <li>Ya existían (no se tocaron): <strong>{result.data.resultado.preservados || 0}</strong></li>
                 <li>Familias nuevas: <strong>{result.data.resultado.familias || 0}</strong></li>
                 <li>Omitidos por marca inexistente: <strong>{result.data.resultado.omitidos_marca || 0}</strong></li>
                 {result.data.resultado.errores > 0 && (
