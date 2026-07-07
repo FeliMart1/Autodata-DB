@@ -997,7 +997,7 @@ const importarExcelMinimos = async (req, res) => {
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null, range: headerRange });
     let rawRowIndex = 0;
 
-    const resultado = { creados: 0, actualizados: 0, familias: 0, omitidos_marca: 0, errores: 0 };
+    const resultado = { creados: 0, actualizados: 0, preservados: 0, familias: 0, omitidos_marca: 0, errores: 0 };
     const marcaIdMap = new Map();
     const familiaIdMap = new Map();
 
@@ -1093,14 +1093,24 @@ const importarExcelMinimos = async (req, res) => {
         const precioNum = toNum(normRow['preciousd'] || row['Precio_USD'], 'decimal');
 
         const modExists = await execWithDebug(
-          `SELECT ModeloID FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`,
+          `SELECT ModeloID, Estado FROM Modelo WHERE CodigoAutodata = @p0 OR (MarcaID = @p1 AND CodigoModelo = @p2)`,
           [codigoAutodata, dbMarcaId, codModelo]
         );
 
         if (modExists.length > 0) {
-          // Existe: rellenar/actualizar SOLO datos mínimos (COALESCE = no pisa con vacío).
-          // NO toca equipamiento ni precio.
           const modeloIdDb = modExists[0].ModeloID;
+          const estadoActual = modExists[0].Estado;
+
+          // No pisar modelos que ya avanzaron a la fase de equipamiento o que están
+          // en definitivo: bajarlos a 'minimos_aprobados' perdería trabajo ya cargado.
+          const ESTADOS_PROTEGIDOS = ['equipamiento_cargado', 'revision_equipamiento', 'corregir_equipamiento', 'definitivo'];
+          if (ESTADOS_PROTEGIDOS.includes(estadoActual)) {
+            resultado.preservados = (resultado.preservados || 0) + 1;
+            continue;
+          }
+
+          // Existe y aún no cargó equipamiento: rellenar/actualizar SOLO datos mínimos
+          // (COALESCE = no pisa con vacío). NO toca equipamiento ni precio.
           await execWithDebug(`
             UPDATE Modelo SET
               DescripcionModelo     = COALESCE(@p1, DescripcionModelo),
