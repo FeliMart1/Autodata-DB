@@ -84,17 +84,17 @@ export function ExportPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Exportar Datos (Excel)</h1>
-        <p className="text-slate-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Exportar Datos (Excel)</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           Descarga los archivos Excel compatibles con el formato histórico.
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow border border-slate-200 mx-auto max-w-2xl mt-8">
+      <div className="bg-card rounded-lg shadow border border-border mx-auto max-w-2xl mt-8">
         <div className="p-6">
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Tipo de Exportación
               </label>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -103,8 +103,8 @@ export function ExportPage() {
                   onClick={() => setTipoExport('ventas')}
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
                     tipoExport === 'ventas'
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-slate-50'
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-300'
+                      : 'border-border text-muted-foreground hover:border-indigo-300 hover:bg-muted dark:hover:border-indigo-700'
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
@@ -115,8 +115,8 @@ export function ExportPage() {
                   onClick={() => setTipoExport('empadronamientos')}
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
                     tipoExport === 'empadronamientos'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-slate-50'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'border-border text-muted-foreground hover:border-emerald-300 hover:bg-muted dark:hover:border-emerald-700'
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
@@ -127,8 +127,8 @@ export function ExportPage() {
                   onClick={() => setTipoExport('plantilla')}
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
                     tipoExport === 'plantilla'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-slate-50'
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'border-border text-muted-foreground hover:border-blue-300 hover:bg-muted dark:hover:border-blue-700'
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
@@ -139,8 +139,8 @@ export function ExportPage() {
                   onClick={() => setTipoExport('definitivos')}
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all opacity-60 ${
                     tipoExport === 'definitivos'
-                      ? 'border-amber-600 bg-amber-50 text-amber-700'
-                      : 'border-slate-200 text-slate-600 hover:border-amber-300 hover:bg-slate-50'
+                      ? 'border-amber-600 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-300'
+                      : 'border-border text-muted-foreground hover:border-amber-300 hover:bg-muted dark:hover:border-amber-700'
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
@@ -152,7 +152,7 @@ export function ExportPage() {
             {tipoExport !== 'plantilla' && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     <div className="flex items-center gap-2">
                       <CalendarDays className="h-4 w-4" />
                       Mes
@@ -161,22 +161,22 @@ export function ExportPage() {
                 <select
                   value={mes}
                   onChange={(e) => setMes(Number(e.target.value))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-input bg-background text-foreground px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   {months.map((m) => (
                     <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
                 </select>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Año
                 </label>
                 <select
                   value={anio}
                   onChange={(e) => setAnio(Number(e.target.value))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-input bg-background text-foreground px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   {years.map((y) => (
                     <option key={y} value={y}>{y}</option>
@@ -189,7 +189,7 @@ export function ExportPage() {
           </div>
         </div>
 
-        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 rounded-b-lg">
+        <div className="bg-muted px-6 py-4 border-t border-border rounded-b-lg">
           <Button
             onClick={handleExport}
             disabled={isExporting || tipoExport === 'definitivos'}

@@ -11,15 +11,17 @@ exports.exportarVentasExcel = async (req, res) => {
     }
 
     const query = `
-      SELECT 
+      SELECT
         m.CodigoAutodata AS [CODIGO CONCATENADO],
         v.Anio AS [AÑO],
         v.Mes AS [MES],
         -- Generar fecha aproximada como string DD/MM/YY
         RIGHT('0' + CAST(v.Mes AS VARCHAR(2)), 2) + '/01/' + RIGHT(CAST(v.Anio AS VARCHAR(4)), 2) AS [FECHA],
         v.Cantidad AS [VENTAS],
-        ISNULL(m.PrecioInicial, 0) AS [PRECIO],
-        (v.Cantidad * ISNULL(m.PrecioInicial, 0)) AS [USD],
+        -- Precio congelado al momento de cargar la venta. Fallback a PrecioInicial actual
+        -- solo para registros viejos anteriores a este cambio (PrecioUnitario = NULL).
+        ISNULL(v.PrecioUnitario, ISNULL(m.PrecioInicial, 0)) AS [PRECIO],
+        (v.Cantidad * ISNULL(v.PrecioUnitario, ISNULL(m.PrecioInicial, 0))) AS [USD],
         ISNULL(m.Tipo, m.CategoriaCodigo) AS [TIPO],
         ISNULL(m.SegmentacionAutodata, '') AS [SEGMENTO]
       FROM Venta v

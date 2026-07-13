@@ -8,6 +8,7 @@ import { Input } from '@components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/Select';
 import { modeloService } from '@services/modeloService';
 import { marcasService } from '@/services/marcasService';
+import estadoService from '@services/estadoService';
 import { Modelo, ModeloEstado, ModeloFilters, UserRole } from '@/types/index';
 import { Marca as MarcaResponse } from '@/types/marca';
 import { Plus, Filter, Trash2 } from 'lucide-react';
@@ -26,6 +27,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@components/ui/alert-dialog';
+
+// Combustibles reconocidos por el sistema (mismo listado que Datos Mínimos)
+const COMBUSTIBLES = ['NAFTA', 'DIESEL', 'ELÉCTRICO', 'HÍBRIDO', 'GNC'];
 
 export function ModelosPage() {
   const [modelos, setModelos] = useState<Modelo[]>([]);
@@ -155,26 +159,10 @@ export function ModelosPage() {
       cell: ({ row }) => {
         const estado = row.original.Estado;
         if (!estado) return <span className="text-muted-foreground text-sm">-</span>;
-        
-        const colors: Record<string, string> = {
-          'importado': 'bg-gray-100 text-gray-800',
-          'requisitos_minimos': 'bg-blue-100 text-blue-800',
-          'en_revision': 'bg-yellow-100 text-yellow-800',
-          'para_corregir': 'bg-red-100 text-red-800',
-          'definitivo': 'bg-green-100 text-green-800',
-        };
-        
-        const labels: Record<string, string> = {
-          'importado': 'Importado',
-          'requisitos_minimos': 'Requisitos Mínimos',
-          'en_revision': 'En Revisión',
-          'para_corregir': 'Para Corregir',
-          'definitivo': 'Definitivo',
-        };
-        
+
         return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[estado] || 'bg-gray-100 text-gray-800'}`}>
-            {labels[estado] || estado}
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoService.getEstadoBadgeColor(estado)}`}>
+            {estadoService.getEstadoLabel(estado)}
           </span>
         );
       },
@@ -195,7 +183,7 @@ export function ModelosPage() {
         <Button
           variant="ghost"
           size="sm"
-          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/30"
           onClick={(e) => {
             e.stopPropagation();
             setDeletingModelo(row.original);
@@ -259,27 +247,38 @@ export function ModelosPage() {
           </Select>
 
           <Select
-            value={filters.estado || ''}
-            onValueChange={(value) => handleFilterChange('estado', value as ModeloEstado)}
+            value={filters.estado || 'all'}
+            onValueChange={(value) => handleFilterChange('estado', value === 'all' ? undefined : (value as ModeloEstado))}
           >
             <SelectTrigger label="Estado">
               <SelectValue placeholder="Todos los estados" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
               {Object.values(ModeloEstado).map((estado) => (
                 <SelectItem key={estado} value={estado}>
-                  {estado.replace(/_/g, ' ')}
+                  {estadoService.getEstadoLabel(estado)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Input
-            type="number"
-            placeholder="Año"
-            value={filters.anio || ''}
-            onChange={(e) => handleFilterChange('anio', e.target.value ? Number(e.target.value) : undefined)}
-          />
+          <Select
+            value={filters.combustible || 'all'}
+            onValueChange={(value) => handleFilterChange('combustible', value === 'all' ? undefined : value)}
+          >
+            <SelectTrigger label="Combustible">
+              <SelectValue placeholder="Todos los combustibles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los combustibles</SelectItem>
+              {COMBUSTIBLES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Button variant="outline" onClick={clearFilters} className="w-full">
             Limpiar Filtros
