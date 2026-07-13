@@ -562,6 +562,8 @@ CREATE TABLE [dbo].[Venta] (
     [Periodo]            NVARCHAR(7)  NOT NULL,
     [Anio]               INT          NOT NULL,
     [Mes]                INT          NOT NULL,
+    -- Precio congelado al momento de crear el registro (NO se actualiza si el precio del modelo cambia después)
+    [PrecioUnitario]     DECIMAL(18,2) NULL,
     [CreadoPorID]        INT          NOT NULL,
     [FechaCreacion]      DATETIME2(7) NOT NULL DEFAULT GETDATE(),
     [ModificadoPorID]    INT          NULL,
@@ -603,6 +605,8 @@ CREATE TABLE [dbo].[Empadronamiento] (
     [Periodo]            NVARCHAR(7)  NOT NULL,
     [Anio]               INT          NOT NULL,
     [Mes]                INT          NOT NULL,
+    -- Precio congelado al momento de crear el registro (NO se actualiza si el precio del modelo cambia después)
+    [PrecioUnitario]     DECIMAL(18,2) NULL,
     [CreadoPorID]        INT          NOT NULL,
     [FechaCreacion]      DATETIME2(7) NOT NULL DEFAULT GETDATE(),
     [ModificadoPorID]    INT          NULL,
@@ -877,11 +881,10 @@ INSERT INTO [dbo].[Departamento] (Codigo, Nombre, Pais, Activo) VALUES
 ('FS',   'Flores',           'Uruguay', 1),
 ('DU',   'Durazno',          'Uruguay', 1),
 ('TA',   'Tacuarembó',       'Uruguay', 1),
-('LA',   'Lavalleja',        'Uruguay', 1),
-('NA',   'Nacional',         'Uruguay', 1);  -- agregado para empadronamientos nacionales
+('LA',   'Lavalleja',        'Uruguay', 1);
 GO
 
-PRINT '20 departamentos insertados.';
+PRINT '19 departamentos insertados.';
 
 -- ============================================================
 -- PASO 9: SEED — Usuarios

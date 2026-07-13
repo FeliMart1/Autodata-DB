@@ -109,27 +109,27 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
   return (
     <div>
       {/* Indicador de progreso */}
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-blue-900">
+          <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
             Progreso de Datos Mínimos
           </span>
-          <span className="text-sm font-semibold text-blue-700">
+          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
             {camposCompletos} / {camposObligatorios.length} campos obligatorios
           </span>
         </div>
-        <div className="w-full bg-blue-200 rounded-full h-2">
-          <div 
+        <div className="w-full bg-blue-200 dark:bg-blue-950/50 rounded-full h-2">
+          <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${(camposCompletos / camposObligatorios.length) * 100}%` }}
           />
         </div>
         {camposCompletos < camposObligatorios.length ? (
-          <p className="text-xs text-blue-700 mt-2">
+          <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
             💾 Puedes guardar tu progreso con "Guardar Progreso" y continuar después. Para enviar a revisión necesitas completar los {camposObligatorios.length - camposCompletos} campos restantes.
           </p>
         ) : (
-          <p className="text-xs text-green-700 mt-2">
+          <p className="text-xs text-green-700 dark:text-green-400 mt-2">
             ✅ Todos los campos obligatorios completados. Ya puedes enviar a revisión.
           </p>
         )}
@@ -427,7 +427,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   type="text"
                   value={formData.Tipo || ''}
                   onChange={(e) => handleChange('Tipo', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 bg-background text-foreground"
                   disabled={readonly}
                   placeholder="AUTOMOVIL / COMERCIAL"
                 />
@@ -497,7 +497,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   <button
                     type="button"
                     onClick={onCancel}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
                   >
                     Cancelar
                   </button>

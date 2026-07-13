@@ -140,13 +140,13 @@ export function ImportPage() {
       />
 
       {/* Nueva Tarjeta para Plantilla Completa */}
-      <Card className="border-blue-200 shadow-md">
-        <CardHeader className="bg-blue-50 border-b border-blue-100">
-          <CardTitle className="flex items-center gap-2 text-blue-800">
+      <Card className="border-blue-200 dark:border-blue-800/50 shadow-md">
+        <CardHeader className="bg-blue-50 border-b border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/40">
+          <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-300">
             <CheckCircle2 className="h-6 w-6 text-blue-600" />
             Importación Definitiva (Maestro Completo)
           </CardTitle>
-          <CardDescription className="text-blue-700">
+          <CardDescription className="text-blue-700 dark:text-blue-400">
             Utiliza este método para cargar todo el equipamiento, marca, modelo y precio desde una única planilla.
           </CardDescription>
         </CardHeader>
@@ -187,13 +187,13 @@ export function ImportPage() {
       </Card>
 
       {/* Importar SOLO datos mínimos (sin equipamiento) */}
-      <Card className="border-amber-200 shadow-md">
-        <CardHeader className="bg-amber-50 border-b border-amber-100">
-          <CardTitle className="flex items-center gap-2 text-amber-800">
+      <Card className="border-amber-200 dark:border-amber-800/50 shadow-md">
+        <CardHeader className="bg-amber-50 border-b border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/40">
+          <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
             <FileSpreadsheet className="h-6 w-6 text-amber-600" />
             Importar Mínimos (sin equipamiento)
           </CardTitle>
-          <CardDescription className="text-amber-700">
+          <CardDescription className="text-amber-700 dark:text-amber-400">
             Carga solo los datos mínimos desde la misma plantilla (ignora las columnas de equipamiento).
             Los modelos quedan en estado <strong>minimos_aprobados</strong>, listos para cargar el equipamiento.
             Si el modelo ya existe, completa/actualiza sus datos mínimos sin tocar equipamiento ni precio.
@@ -224,18 +224,18 @@ export function ImportPage() {
           </div>
 
           {result && result.success && result.data?.resultado && (
-            <div className="mt-2 p-4 border border-green-200 bg-green-50 rounded-lg">
-              <h3 className="flex items-center gap-2 font-medium text-green-800">
+            <div className="mt-2 p-4 border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800/50 rounded-lg">
+              <h3 className="flex items-center gap-2 font-medium text-green-800 dark:text-green-300">
                 <CheckCircle2 className="h-5 w-5" />
                 Resumen de Mínimos
               </h3>
-              <ul className="mt-2 space-y-1 text-sm text-green-700 pl-7 list-disc">
+              <ul className="mt-2 space-y-1 text-sm text-green-700 dark:text-green-400 pl-7 list-disc">
                 <li>Modelos creados: <strong>{result.data.resultado.creados || 0}</strong></li>
                 <li>Ya existían (no se tocaron): <strong>{result.data.resultado.preservados || 0}</strong></li>
                 <li>Familias nuevas: <strong>{result.data.resultado.familias || 0}</strong></li>
                 <li>Omitidos por marca inexistente: <strong>{result.data.resultado.omitidos_marca || 0}</strong></li>
                 {result.data.resultado.errores > 0 && (
-                  <li className="text-amber-700">Filas con error: <strong>{result.data.resultado.errores}</strong></li>
+                  <li className="text-amber-700 dark:text-amber-400">Filas con error: <strong>{result.data.resultado.errores}</strong></li>
                 )}
               </ul>
             </div>
@@ -294,12 +294,12 @@ export function ImportPage() {
           </div>
 
           {result && result.success && (
-            <div className="mt-6 p-4 border border-green-200 bg-green-50 rounded-lg">
-              <h3 className="flex items-center gap-2 font-medium text-green-800">
+            <div className="mt-6 p-4 border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800/50 rounded-lg">
+              <h3 className="flex items-center gap-2 font-medium text-green-800 dark:text-green-300">
                 <CheckCircle2 className="h-5 w-5" />
                 Resumen de Carga
               </h3>
-              <ul className="mt-2 space-y-1 text-sm text-green-700 pl-7 list-disc">
+              <ul className="mt-2 space-y-1 text-sm text-green-700 dark:text-green-400 pl-7 list-disc">
                 <li>Nuevas marcas creadas: <strong>{result.data?.creados?.marcas || 0}</strong></li>
                 <li>Nuevos modelos creados: <strong>{result.data?.creados?.modelos || 0}</strong></li>
               </ul>

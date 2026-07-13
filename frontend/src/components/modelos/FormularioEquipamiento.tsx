@@ -99,7 +99,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
 
     return (
       <div key={col} className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-slate-700 leading-tight break-words">{labelEquip(col)}</label>
+        <label className="text-sm font-medium text-foreground leading-tight break-words">{labelEquip(col)}</label>
         {esBit ? (
           <label className="flex items-center gap-2 h-10">
             <input
@@ -107,9 +107,9 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
               disabled={readonly}
               checked={val === true || val === 1 || val === '1' || val === 'Si'}
               onChange={(e) => handleChange(col, e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-brand-blue"
+              className="w-4 h-4 rounded border-input text-primary"
             />
-            <span className="text-sm text-slate-500">{(val === true || val === 1 || val === '1' || val === 'Si') ? 'Sí' : 'No'}</span>
+            <span className="text-sm text-muted-foreground">{(val === true || val === 1 || val === '1' || val === 'Si') ? 'Sí' : 'No'}</span>
           </label>
         ) : esNum ? (
           <input
@@ -117,7 +117,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
             disabled={readonly}
             value={(val ?? '') as any}
             onChange={(e) => handleChange(col, e.target.value === '' ? undefined : parseFloat(e.target.value))}
-            className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+            className="w-full h-10 px-3 rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         ) : (
           <input
@@ -125,7 +125,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
             disabled={readonly}
             value={(val ?? '') as any}
             onChange={(e) => handleChange(col, e.target.value === '' ? undefined : e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+            className="w-full h-10 px-3 rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         )}
       </div>
@@ -145,7 +145,7 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
         return (
           <Card key={titulo} className="border shadow-sm">
             <div
-              className="flex items-center justify-between p-4 cursor-pointer bg-slate-50"
+              className="flex items-center justify-between p-4 cursor-pointer bg-muted/50"
               onClick={() => toggle(titulo)}
             >
               <CardTitle className="text-base">{titulo} ({visibles.length})</CardTitle>

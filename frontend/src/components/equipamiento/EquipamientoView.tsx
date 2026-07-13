@@ -41,7 +41,7 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
         return <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" /> No</Badge>;
     }
     if (value === 'N/A' || value === 'N/D') {
-        return <Badge variant="outline" className="gap-1 border-slate-300 text-slate-500">{value}</Badge>;
+        return <Badge variant="outline" className="gap-1 border-border text-muted-foreground">{value}</Badge>;
     }
     return <></>; // Won't be reached usually
   };
@@ -51,10 +51,10 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
     const isBooleanish = value === true || value === false || value === 'Si' || value === 'No' || value === 'Sí' || value === 'N/A';
 
     return (
-      <div className="flex items-center justify-between py-2 border-b border-slate-100 last:border-b-0">
-        <span className="text-sm font-medium text-slate-500 w-2/3 pr-4 leading-tight break-words">{label}</span>
-        <div className="text-sm font-semibold text-slate-800 text-right">
-            {vacio ? <span className="text-slate-400">—</span> : (isBooleanish ? <BooleanBadge value={value} /> : value)}
+      <div className="flex items-center justify-between py-2 border-b border-border/60 last:border-b-0">
+        <span className="text-sm font-medium text-muted-foreground w-2/3 pr-4 leading-tight break-words">{label}</span>
+        <div className="text-sm font-semibold text-foreground text-right">
+            {vacio ? <span className="text-muted-foreground">—</span> : (isBooleanish ? <BooleanBadge value={value} /> : value)}
         </div>
       </div>
     );
@@ -123,9 +123,9 @@ export function EquipamientoView({ modeloId }: EquipamientoViewProps) {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
 
-        <Card className="border shadow-sm overflow-hidden border-slate-200 col-span-full">
-          <CardHeader className="bg-slate-50 border-b border-slate-200 py-3">
-            <CardTitle className="text-base text-slate-800">Equipamiento Completo</CardTitle>
+        <Card className="border shadow-sm overflow-hidden border-border col-span-full">
+          <CardHeader className="bg-muted/50 border-b border-border py-3">
+            <CardTitle className="text-base text-foreground">Equipamiento Completo</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 px-4 py-2">

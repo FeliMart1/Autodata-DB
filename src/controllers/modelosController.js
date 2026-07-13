@@ -14,34 +14,37 @@ const {
 // GET /api/modelos - Listar modelos con filtros y paginación
 exports.getAll = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 50, 
-      estado, 
-      marcaId, 
+    const {
+      page = 1,
+      limit = 50,
+      estado,
+      marcaId,
       anio,
       tipo,
-      search 
+      combustible,
+      search
     } = req.query;
-    
+
     const offset = (page - 1) * limit;
-    
+
     // Construir WHERE clause
     let whereConditions = ['m.Activo = 1'];
     if (estado) {
       if (Array.isArray(estado)) {
-        const estadoList = estado.map(e => `N'${e}'`).join(', ');
+        const estadoList = estado.map(e => `N'${e.replace(/'/g, "''")}'`).join(', ');
         whereConditions.push(`m.Estado IN (${estadoList})`);
       } else {
-        const estadosStr = estado.split(',').map(e => `N'${e.trim()}'`).join(', ');
+        const estadosStr = estado.split(',').map(e => `N'${e.trim().replace(/'/g, "''")}'`).join(', ');
         whereConditions.push(`m.Estado IN (${estadosStr})`);
       }
     }
-    if (marcaId) whereConditions.push(`m.MarcaID = ${marcaId}`);
-    if (anio) whereConditions.push(`m.Anio = ${anio}`);
-    if (tipo) whereConditions.push(`m.Tipo = N'${tipo}'`);
+    if (marcaId) whereConditions.push(`m.MarcaID = ${parseInt(marcaId, 10)}`);
+    if (anio) whereConditions.push(`m.Anio = ${parseInt(anio, 10)}`);
+    if (tipo) whereConditions.push(`m.Tipo = N'${String(tipo).replace(/'/g, "''")}'`);
+    if (combustible) whereConditions.push(`m.CombustibleCodigo = N'${String(combustible).replace(/'/g, "''")}'`);
     if (search) {
-      whereConditions.push(`(m.DescripcionModelo LIKE N'%${search}%' OR m.Familia LIKE N'%${search}%' OR mar.Descripcion LIKE N'%${search}%' OR m.CodigoModelo LIKE N'%${search}%' OR mar.CodigoMarca LIKE N'%${search}%' OR m.CodigoAutodata LIKE N'%${search}%')`);
+      const searchSafe = String(search).replace(/'/g, "''");
+      whereConditions.push(`(m.DescripcionModelo LIKE N'%${searchSafe}%' OR m.Familia LIKE N'%${searchSafe}%' OR mar.Descripcion LIKE N'%${searchSafe}%' OR m.CodigoModelo LIKE N'%${searchSafe}%' OR mar.CodigoMarca LIKE N'%${searchSafe}%' OR m.CodigoAutodata LIKE N'%${searchSafe}%')`);
     }
     
     const whereClause = whereConditions.join(' AND ');
