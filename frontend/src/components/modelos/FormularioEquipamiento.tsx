@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EquipamientoModelo } from '@/types';
 import { Card, CardContent, CardTitle } from '@components/ui/Card';
 import { ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { Button } from '@components/ui/Button';
 import { labelEquip } from '@components/equipamiento/equipamientoLabels';
+import { EQUIP_TEXT_OPTIONS, EQUIP_NUMERIC_LIMITS, UPPERCASE_EQUIP_FIELDS, maskNumericInput } from '@components/equipamiento/equipamientoFieldConfig';
 
 interface FormularioEquipamientoProps {
   equipamiento: Partial<EquipamientoModelo>;
@@ -12,6 +13,8 @@ interface FormularioEquipamientoProps {
   onSendRevision?: (data: Partial<EquipamientoModelo>) => Promise<void>;
   onChange?: (data: Partial<EquipamientoModelo>) => void;
   readonly?: boolean;
+  /** HP del modelo (Datos Mínimos), para autocalcular kg/hp = PesoOrdenMarcha / HP */
+  modeloHP?: number | null;
 }
 
 type EquipColMeta = { column: string; type: string };
@@ -46,13 +49,37 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   onCancel,
   onSendRevision,
   onChange,
-  readonly = false
+  readonly = false,
+  modeloHP
 }) => {
   const [formData, setFormData] = useState<Partial<EquipamientoModelo>>(equipamiento || {});
+  // Si el usuario edita kg/hp a mano, dejamos de recalcularlo automáticamente
+  // hasta que vuelva a quedar vacío.
+  const kgPorHpManualRef = useRef(false);
 
   useEffect(() => {
     setFormData(equipamiento || {});
+    kgPorHpManualRef.current = false;
   }, [equipamiento]);
+
+  // kg/hp = Peso en orden de marcha / HP. Se recalcula solo mientras el usuario
+  // no lo haya tocado a mano (o lo haya dejado vacío de nuevo).
+  useEffect(() => {
+    if (readonly || kgPorHpManualRef.current) return;
+    const peso = (formData as any).PesoOrdenMarcha;
+    if (peso == null || peso === '' || !modeloHP) return;
+    const calculado = Number(peso) / Number(modeloHP);
+    if (!isFinite(calculado)) return;
+    const redondeado = Math.round(calculado * 100) / 100;
+    if ((formData as any).KgPorHP !== redondeado) {
+      setFormData(prev => {
+        const next = { ...prev, KgPorHP: redondeado } as any;
+        if (onChange) onChange(next);
+        return next;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(formData as any).PesoOrdenMarcha, modeloHP, readonly]);
 
   // Mapa columna -> tipo SQL, provisto por el backend en __schema.
   const schemaCols: EquipColMeta[] = ((equipamiento as any)?.__schema as EquipColMeta[]) || [];
@@ -70,6 +97,10 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   const toggle = (titulo: string) => setAbiertas(prev => ({ ...prev, [titulo]: !prev[titulo] }));
 
   const handleChange = (field: string, value: any) => {
+    if (field === 'KgPorHP') {
+      // El usuario tomó control manual; si lo vacía, el auto-cálculo vuelve a activarse.
+      kgPorHpManualRef.current = value != null && value !== '';
+    }
     const newData = { ...formData, [field]: value };
     setFormData(newData);
     if (onChange) onChange(newData);
@@ -78,12 +109,15 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
   const handleAction = async (action: 'save' | 'revision') => {
     // No enviamos __schema (metadato del front) al backend.
     const { __schema, ...payload } = formData as any;
-    // Al guardar manualmente: todo campo checkbox (bit) que no quedó marcado se persiste
-    // como "No" (false), no como "—". Los campos de texto/número vacíos quedan en null ("—").
     for (const { column, type } of schemaCols) {
       if (type === 'bit') {
+        // Todo campo checkbox que no quedó marcado se persiste como "No" (false), no como "—".
         const v = payload[column];
         payload[column] = (v === true || v === 1 || v === '1' || v === 'Si');
+      } else if (EQUIP_NUMERIC_LIMITS[column] != null && typeof payload[column] === 'string') {
+        // Los campos numéricos con máscara se editan como texto; acá se convierten a número real.
+        const n = parseFloat(payload[column]);
+        payload[column] = payload[column] === '' || isNaN(n) ? undefined : n;
       }
     }
     if (action === 'save' && onSave) await onSave(payload);
@@ -96,6 +130,9 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
     const val = (formData as any)[col];
     const esBit = tipo === 'bit';
     const esNum = NUMERIC_TYPES.has(tipo);
+    const limit = EQUIP_NUMERIC_LIMITS[col];
+    const opciones = EQUIP_TEXT_OPTIONS[col];
+    const inputClass = "w-full h-10 px-3 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50";
 
     return (
       <div key={col} className="flex flex-col gap-1.5">
@@ -111,21 +148,58 @@ export const FormularioEquipamiento: React.FC<FormularioEquipamientoProps> = ({
             />
             <span className="text-sm text-muted-foreground">{(val === true || val === 1 || val === '1' || val === 'Si') ? 'Sí' : 'No'}</span>
           </label>
+        ) : esNum && limit ? (
+          <>
+            <input
+              type="text"
+              inputMode="decimal"
+              disabled={readonly}
+              list={limit.suggestions ? `dl-${col}` : undefined}
+              value={(val ?? '') as any}
+              onChange={(e) => {
+                const masked = maskNumericInput(e.target.value, limit);
+                handleChange(col, masked === '' ? undefined : masked);
+              }}
+              className={inputClass}
+            />
+            {limit.suggestions && (
+              <datalist id={`dl-${col}`}>
+                {limit.suggestions.map(o => <option key={o} value={o} />)}
+              </datalist>
+            )}
+          </>
         ) : esNum ? (
           <input
             type="number"
             disabled={readonly}
             value={(val ?? '') as any}
             onChange={(e) => handleChange(col, e.target.value === '' ? undefined : parseFloat(e.target.value))}
-            className="w-full h-10 px-3 rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className={inputClass}
           />
+        ) : opciones ? (
+          <>
+            <input
+              type="text"
+              list={`dl-${col}`}
+              disabled={readonly}
+              value={(val ?? '') as any}
+              onChange={(e) => handleChange(col, e.target.value === '' ? undefined : e.target.value)}
+              className={inputClass}
+            />
+            <datalist id={`dl-${col}`}>
+              {opciones.map(o => <option key={o} value={o} />)}
+            </datalist>
+          </>
         ) : (
           <input
             type="text"
             disabled={readonly}
             value={(val ?? '') as any}
-            onChange={(e) => handleChange(col, e.target.value === '' ? undefined : e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary/50"
+            onChange={(e) => {
+              const v = e.target.value;
+              handleChange(col, v === '' ? undefined : (UPPERCASE_EQUIP_FIELDS.has(col) ? v.toUpperCase() : v));
+            }}
+            className={inputClass}
           />
         )}
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modelo } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/Card';
+import { MODELO_TEXT_OPTIONS, MODELO_NUMERIC_LIMITS, maskNumericInput } from '@components/equipamiento/equipamientoFieldConfig';
 
 const normalizeTipo = (v?: string): string => {
   if (!v) return '';
@@ -187,22 +188,7 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   placeholder="Seleccionar o escribir..."
                 />
                 <datalist id="carrocerias">
-                  <option value="BOX" />
-                  <option value="Cab. Extendida" />
-                  <option value="Cabrio" />
-                  <option value="CAMION" />
-                  <option value="Chasis Cab." />
-                  <option value="City Car" />
-                  <option value="Coupé" />
-                  <option value="DC" />
-                  <option value="FURGON" />
-                  <option value="Hatch" />
-                  <option value="Minibus" />
-                  <option value="Omnibus" />
-                  <option value="PUP" />
-                  <option value="Rural" />
-                  <option value="Sedán" />
-                  <option value="SUV" />
+                  {MODELO_TEXT_OPTIONS.Carroceria.map(o => <option key={o} value={o} />)}
                 </datalist>
               </div>
 
@@ -328,15 +314,16 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   Cilindros <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
+                  type="text"
+                  inputMode="numeric"
                   value={formData.Cilindros ?? ''}
-                  onChange={(e) => handleChange('Cilindros', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                  onChange={(e) => {
+                    const masked = maskNumericInput(e.target.value, MODELO_NUMERIC_LIMITS.Cilindros);
+                    handleChange('Cilindros', masked === '' ? undefined : parseInt(masked, 10));
+                  }}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  min="0"
-                  max="99"
                   placeholder="4"
                 />
               </div>
@@ -346,15 +333,16 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   Válvulas <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
+                  type="text"
+                  inputMode="numeric"
                   value={formData.Valvulas ?? ''}
-                  onChange={(e) => handleChange('Valvulas', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                  onChange={(e) => {
+                    const masked = maskNumericInput(e.target.value, MODELO_NUMERIC_LIMITS.Valvulas);
+                    handleChange('Valvulas', masked === '' ? undefined : parseInt(masked, 10));
+                  }}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  min="0"
-                  max="99"
                   placeholder="16"
                 />
               </div>
@@ -364,15 +352,16 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   Cilindrada (CC) <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
+                  type="text"
+                  inputMode="numeric"
                   value={formData.CC ?? ''}
-                  onChange={(e) => handleChange('CC', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                  onChange={(e) => {
+                    const masked = maskNumericInput(e.target.value, MODELO_NUMERIC_LIMITS.CC);
+                    handleChange('CC', masked === '' ? undefined : parseInt(masked, 10));
+                  }}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  min="0"
-                  max="9999"
                   placeholder="1500"
                 />
               </div>
@@ -382,16 +371,16 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   Potencia (HP) <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
+                  type="text"
+                  inputMode="numeric"
                   value={formData.HP || ''}
-                  onChange={(e) => handleChange('HP', parseFloat(e.target.value) || undefined)}
+                  onChange={(e) => {
+                    const masked = maskNumericInput(e.target.value, MODELO_NUMERIC_LIMITS.HP);
+                    handleChange('HP', masked === '' ? undefined : parseInt(masked, 10));
+                  }}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  min="0"
-                  max="9999"
-                  step="0.1"
                   placeholder="150"
                 />
               </div>
@@ -445,15 +434,16 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   Puertas <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
+                  type="text"
+                  inputMode="numeric"
                   value={formData.Puertas || ''}
-                  onChange={(e) => handleChange('Puertas', parseInt(e.target.value) || undefined)}
+                  onChange={(e) => {
+                    const masked = maskNumericInput(e.target.value, MODELO_NUMERIC_LIMITS.Puertas);
+                    handleChange('Puertas', masked === '' ? undefined : parseInt(masked, 10));
+                  }}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  min="2"
-                  max="6"
                   placeholder="4"
                 />
               </div>
@@ -463,15 +453,16 @@ export const FormularioDatosMinimos: React.FC<FormularioDatosMinimosProp> = ({
                   Asientos <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  onKeyDown={(e) => { if(['e','E','+','-','.'].includes(e.key)) e.preventDefault(); }}
+                  type="text"
+                  inputMode="numeric"
                   value={formData.Asientos || ''}
-                  onChange={(e) => handleChange('Asientos', parseInt(e.target.value) || undefined)}
+                  onChange={(e) => {
+                    const masked = maskNumericInput(e.target.value, MODELO_NUMERIC_LIMITS.Asientos);
+                    handleChange('Asientos', masked === '' ? undefined : parseInt(masked, 10));
+                  }}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={readonly}
-                  min="1"
-                  max="50"
                   placeholder="5"
                 />
               </div>

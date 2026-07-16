@@ -390,6 +390,7 @@ const handleEnviarARevision = async (formData: any) => {
             onCancel={() => setModeloSeleccionado(null)}
             readonly={!isFaseEquipamiento}
             onSendRevision={isFaseEquipamiento ? handleEnviarARevision : undefined}
+            modeloHP={modeloSeleccionado?.HP}
           />
         </TabsContent>
       </>
