@@ -459,7 +459,7 @@ CREATE TABLE [dbo].[EquipamientoModelo] (
     [KitHiFi]                                NVARCHAR(100)   NULL,
     [Radio]                                  BIT             NULL,
     -- Asientos  (NumeroAsientos vive en Modelo.Asientos: fuente de verdad unica)
-    [AsientoElectricoCalefMasaje]            BIT             NULL,
+    [AsientoElectricoCalefMasaje]            NVARCHAR(20)    NULL,   -- NVARCHAR: admite "Si", "No", "Elect. + Calef", "Calef"
     [AsientosRango2y3]                       NVARCHAR(100)   NULL,
     [Asiento2Mas1]                           BIT             NULL,
     [ButacaElectrica]                        NVARCHAR(20)    NULL,   -- NVARCHAR: admite "Si", "No", "2"

@@ -596,10 +596,16 @@ exports.deletePermanente = async (req, res) => {
 
     const descripcion = modelo[0].DescripcionModelo || `ID ${idNum}`;
 
-    // Borrar en cascada respetando FK
+    // Borrar en cascada respetando FK (hijos antes que padres)
     await db.queryRaw(`DELETE FROM EquipamientoModelo WHERE ModeloID = ${idNum}`);
     await db.queryRaw(`DELETE FROM PrecioModelo WHERE ModeloID = ${idNum}`);
     await db.queryRaw(`DELETE FROM ModeloHistorial WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM ModeloEstado WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM VentasModelo WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM Empadronamiento WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM Venta WHERE ModeloID = ${idNum}`);
+    await db.queryRaw(`DELETE FROM PrecioVersion WHERE VersionID IN (SELECT VersionID FROM VersionModelo WHERE ModeloID = ${idNum})`);
+    await db.queryRaw(`DELETE FROM VersionModelo WHERE ModeloID = ${idNum}`);
     await db.queryRaw(`DELETE FROM Modelo WHERE ModeloID = ${idNum}`);
 
     logger.info(`Modelo eliminado PERMANENTEMENTE: ID ${idNum} - "${descripcion}" por usuario ${req.user.username}`);

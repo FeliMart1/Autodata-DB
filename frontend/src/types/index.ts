@@ -243,7 +243,7 @@ export interface EquipamientoModelo {
   KitHiFi?: string;
   Radio?: boolean;
   NumeroAsientos?: number;
-  AsientoElectricoCalefMasaje?: boolean;
+  AsientoElectricoCalefMasaje?: string;
   AsientosRango2y3?: string;
   Asiento2Mas1?: boolean;
   ButacaElectrica?: string;
