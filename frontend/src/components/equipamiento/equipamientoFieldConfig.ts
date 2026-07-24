@@ -22,7 +22,7 @@ export const EQUIP_TEXT_OPTIONS: Record<string, string[]> = {
   SRI: ['No', 'ISOFIX', 'LATCH', 'ISOFIX Y TOP TETHER', 'ISOFIX Y LATCH'],
   DiscosFrenos: ['2', '4'],
   SistemaMultimedia: ['Composition Media', 'Full Link', 'Media Nav', 'Media Sistem', 'Mirror Link', 'Touch Infotainment', 'Nissan door-to-door', 'R-Link Evolution'],
-  AsientoElectricoCalefMasaje: ['Si', 'No', 'Eléct. + Calef.', 'Eléct. + Masaje'],
+  AsientoElectricoCalefMasaje: ['Si', 'No', 'Elect. + Calef', 'Calef'],
   Techo: ['Techo Panorámico', 'Techo corredizo manual', 'Techo corredizo eléctrico', 'Lona plegable', 'Rígido / Lona plegable', 'No'],
   SensorEstacionamiento: ['Trasero', 'Trasero y delantero', 'No'],
   Camara: ['Trasera', 'Trasera y delantera', 'Trasera y lateral', '360°', 'No', '540°'],
