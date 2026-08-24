@@ -9,6 +9,8 @@ export function ExportPage() {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(new Date().getFullYear());
   const [isExporting, setIsExporting] = useState(false);
+  const [caroneFile, setCaroneFile] = useState<File | null>(null);
+  const [shortnameFile, setShortnameFile] = useState<File | null>(null);
 
   // Generar opciones para años (últimos 5 años)
   const currentYear = new Date().getFullYear();
@@ -31,6 +33,48 @@ export function ExportPage() {
   ];
 
   const handleExport = async () => {
+    if (tipoExport === 'carone') {
+      if (!caroneFile || !shortnameFile) {
+        addToast('Subí los dos archivos (catálogo Carone y SHORTNAME)', 'error');
+        return;
+      }
+      setIsExporting(true);
+      try {
+        const token = localStorage.getItem('token');
+        const formData = new FormData();
+        formData.append('carone', caroneFile);
+        formData.append('shortname', shortnameFile);
+
+        const response = await fetch('/api/export/carone', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => null);
+          throw new Error(err?.message || 'Error al generar el export de Carone');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'CARONE_actualizado.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        addToast('Export de Carone generado correctamente', 'success');
+      } catch (error: any) {
+        addToast(error.message || 'Error al exportar', 'error');
+      } finally {
+        setIsExporting(false);
+      }
+      return;
+    }
+
     setIsExporting(true);
     try {
       let endpoint = '';
@@ -40,21 +84,17 @@ export function ExportPage() {
         endpoint = `/api/export/empadronamientos?anio=${anio}&mes=${mes}`;
       } else if (tipoExport === 'plantilla') {
         endpoint = `/api/export/plantilla`;
-      } else if (tipoExport === 'definitivos') {
-        addToast('Export de definitivos en desarrollo...', 'info');
-        setIsExporting(false);
-        return;
       }
-      
+
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch(endpoint, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         if (response.status === 404) {
              throw new Error('No se encontraron datos para el mes y año seleccionados');
@@ -72,7 +112,7 @@ export function ExportPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       addToast('Export generado correctamente', 'success');
     } catch (error: any) {
       addToast(error.message || 'Error al exportar', 'error');
@@ -136,20 +176,20 @@ export function ExportPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTipoExport('definitivos')}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all opacity-60 ${
-                    tipoExport === 'definitivos'
+                  onClick={() => setTipoExport('carone')}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                    tipoExport === 'carone'
                       ? 'border-amber-600 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-300'
                       : 'border-border text-muted-foreground hover:border-amber-300 hover:bg-muted dark:hover:border-amber-700'
                   }`}
                 >
                   <FileSpreadsheet className="h-6 w-6 mb-2" />
-                  <span className="font-medium text-sm text-center">Próximamente...</span>
+                  <span className="font-medium text-sm text-center">CarOne</span>
                 </button>
               </div>
             </div>
 
-            {tipoExport !== 'plantilla' && (
+            {(tipoExport === 'ventas' || tipoExport === 'empadronamientos') && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
@@ -186,13 +226,44 @@ export function ExportPage() {
             </div>
             )}
 
+            {tipoExport === 'carone' && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Matchea el catálogo de Carone (MARCOD/MARMODCOD) contra nuestros modelos en estado
+                  "definitivo" y completa las columnas de specs en el formato que espera su sistema.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Catálogo Carone (.xlsx, .xls o .csv)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(e) => setCaroneFile(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-muted file:text-foreground file:cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    SHORTNAME.csv
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setShortnameFile(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-muted file:text-foreground file:cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
 
         <div className="bg-muted px-6 py-4 border-t border-border rounded-b-lg">
           <Button
             onClick={handleExport}
-            disabled={isExporting || tipoExport === 'definitivos'}
+            disabled={isExporting}
             className="w-full py-2.5 text-base flex justify-center items-center gap-2"
           >
             {isExporting ? (
