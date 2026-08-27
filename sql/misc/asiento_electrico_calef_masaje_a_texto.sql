@@ -30,16 +30,23 @@ BEGIN
 END
 GO
 
+-- SQL dinamico: si no lo envolvemos en EXEC(), SQL Server intenta resolver
+-- la columna "_new" al COMPILAR este batch (aunque el IF de runtime la
+-- salte), y una segunda corrida (donde la columna ya no existe porque el
+-- batch anterior la renombro) falla con "Invalid column name" antes de
+-- llegar a evaluar el IF.
 IF COL_LENGTH('dbo.EquipamientoModelo', 'AsientoElectricoCalefMasaje_new') IS NOT NULL
 BEGIN
-    UPDATE dbo.EquipamientoModelo
-    SET AsientoElectricoCalefMasaje_new = CASE
-        WHEN AsientoElectricoCalefMasaje = 1 THEN 'Si'
-        WHEN AsientoElectricoCalefMasaje = 0 THEN 'No'
-        ELSE NULL
-    END;
+    EXEC('
+        UPDATE dbo.EquipamientoModelo
+        SET AsientoElectricoCalefMasaje_new = CASE
+            WHEN AsientoElectricoCalefMasaje = 1 THEN ''Si''
+            WHEN AsientoElectricoCalefMasaje = 0 THEN ''No''
+            ELSE NULL
+        END;
 
-    ALTER TABLE dbo.EquipamientoModelo DROP COLUMN AsientoElectricoCalefMasaje;
+        ALTER TABLE dbo.EquipamientoModelo DROP COLUMN AsientoElectricoCalefMasaje;
+    ');
 END
 GO
 
