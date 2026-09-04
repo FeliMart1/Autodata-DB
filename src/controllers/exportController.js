@@ -334,12 +334,16 @@ exports.exportarPlantillaMaestra = async (req, res) => {
 };
 
 // ============================================================
-// Export CarOne: matchea el catálogo de identidad de Carone (MARCOD/MARMODCOD)
-// contra nuestros modelos "definitivo" vía CodigoAutodata, y completa las
-// columnas de specs en el formato exacto que espera su sistema.
+// Export CarOne: genera, para TODOS los modelos en estado "definitivo",
+// una fila en el formato exacto que espera el sistema de Carone.
+// MARCOD/MARMODCOD salen directo de Marca.CodigoMarca / Modelo.CodigoModelo
+// (confirmado que coinciden con el esquema de códigos de Carone).
+// No requiere ningún archivo: es un export de un clic, igual que los demás.
+// SHORTNAME.csv es opcional y solo sirve para completar la columna SHORT NAME
+// (dato que no tenemos en nuestra base).
 // Reimplementación de completar_carone.py / carone_gui_tk.py (ver
-// C:\Users\Administrador\Desktop\Autodata\CarOne), ahora con BASE en vivo
-// desde la DB en vez de un Excel "BASE DE DATOS.xlsx" subido a mano.
+// C:\Users\Administrador\Desktop\Autodata\CarOne) para el resto de las
+// transformaciones de campo.
 // ============================================================
 
 const CARONE_TIPO_MAP = {
@@ -402,43 +406,29 @@ function leerArchivoTabular(file) {
   });
 }
 
-// POST /api/export/carone - Genera el Excel en formato Carone a partir de:
-//  - carone: catálogo de identidad de Carone (MARCOD, MARMODCOD, MAEANIO, CODIGOCLIENTE)
-//  - shortname: CSV con MARCOD, MARMODCOD, "MODELO SHORT NAME"
-// Solo matchea contra modelos en Estado='definitivo'; sin match -> fila en hoja SIN_MATCH.
+// POST /api/export/carone - Genera el Excel en formato Carone para TODOS los
+// modelos en estado 'definitivo'. No requiere ningún archivo.
+// Opcionalmente acepta "shortname" (CSV con MARCOD, MARMODCOD, "MODELO SHORT
+// NAME") para completar esa columna; sin él, SHORT NAME queda en ".".
 exports.exportarCarone = async (req, res) => {
   try {
-    const caroneFile = req.files?.carone?.[0];
     const shortFile = req.files?.shortname?.[0];
 
-    if (!caroneFile || !shortFile) {
-      return res.status(400).json({
-        success: false,
-        message: 'Se requieren los archivos "carone" (catálogo Carone) y "shortname" (SHORTNAME.csv)'
-      });
-    }
-
-    const caroneRows = leerArchivoTabular(caroneFile);
-    const shortRows = leerArchivoTabular(shortFile);
-
-    if (caroneRows.length === 0) {
-      return res.status(400).json({ success: false, message: 'El archivo de Carone está vacío' });
-    }
-
     const shortMap = new Map();
-    for (const r of shortRows) {
-      const codigo = codAutodataDe(r.MARCOD, r.MARMODCOD);
-      const short = String(r['MODELO SHORT NAME'] || '').trim();
-      if (short) shortMap.set(codigo, short);
+    if (shortFile) {
+      const shortRows = leerArchivoTabular(shortFile);
+      for (const r of shortRows) {
+        const codigo = codAutodataDe(r.MARCOD, r.MARMODCOD);
+        const short = String(r['MODELO SHORT NAME'] || '').trim();
+        if (short) shortMap.set(codigo, short);
+      }
     }
 
-    const codigos = caroneRows.map(r => codAutodataDe(r.MARCOD, r.MARMODCOD));
-    const codigosUnicos = [...new Set(codigos)];
-    const codigosSql = codigosUnicos.map(c => `N'${c}'`).join(',');
-
-    const modeloRows = codigosUnicos.length ? await db.queryRaw(`
+    const modeloRows = await db.queryRaw(`
       SELECT
         mo.CodigoAutodata AS CodAutodata,
+        ma.CodigoMarca AS MarcodOut,
+        mo.CodigoModelo AS MarmodcodOut,
         ma.Descripcion AS MarcaDescripcion,
         mo.Carroceria, mo.CombustibleCodigo, mo.HP, mo.CC, mo.TipoCajaAut,
         mo.Puertas, mo.Asientos,
@@ -453,96 +443,80 @@ exports.exportarCarone = async (req, res) => {
       FROM Modelo mo
       JOIN Marca ma ON mo.MarcaID = ma.MarcaID
       LEFT JOIN EquipamientoModelo e ON mo.ModeloID = e.ModeloID
-      WHERE mo.Estado = 'definitivo' AND mo.CodigoAutodata IN (${codigosSql})
-    `) : [];
+      WHERE mo.Estado = 'definitivo'
+      ORDER BY ma.Descripcion, mo.DescripcionModelo
+    `);
 
-    const modeloMap = new Map(modeloRows.map(r => [r.CodAutodata, r]));
+    if (modeloRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'No hay modelos en estado definitivo para exportar' });
+    }
 
-    const filasSalida = [];
-    const sinMatch = [];
-
-    for (const r of caroneRows) {
-      const codigo = codAutodataDe(r.MARCOD, r.MARMODCOD);
-      const m = modeloMap.get(codigo);
+    const filasSalida = modeloRows.map((m) => {
+      const codigo = m.CodAutodata;
       const shortName = shortMap.get(codigo) || CARONE_MISSING;
 
-      if (!m) {
-        sinMatch.push({
-          MARCOD: r.MARCOD, MARMODCOD: r.MARMODCOD, COD_AUTODATA: codigo, 'SHORT NAME': shortName
-        });
-      }
+      const tipo = CARONE_TIPO_MAP[stripAccents(m.Carroceria)] || CARONE_MISSING;
 
-      const tipo = m ? (CARONE_TIPO_MAP[stripAccents(m.Carroceria)] || CARONE_MISSING) : CARONE_MISSING;
-
-      const adas = m ? (
+      const adas = (
         [m.DetectorCambioFila, m.AlertaTraficoCruzadoTrasero, m.AlertaTraficoCruzadoFrontal, m.FrenadoMulticolision].some(v => v === true)
         || String(m.VelocidadCrucero || '').trim().toLowerCase() === 'adaptativo'
-          ? 'SI' : 'NO'
-      ) : CARONE_MISSING;
+      ) ? 'SI' : 'NO';
 
-      const discosRaw = m ? String(m.DiscosFrenos ?? '').trim() : '';
+      const discosRaw = String(m.DiscosFrenos ?? '').trim();
       const discos = discosRaw === '4' ? 'DISCO' : discosRaw === '2' ? 'DISCO + TAMBOR' : CARONE_MISSING;
 
-      const medidas = (m && m.Ancho && m.Largo && m.Altura)
+      const medidas = (m.Ancho && m.Largo && m.Altura)
         ? `${m.Ancho}X${m.Largo}X${m.Altura}`
         : CARONE_MISSING;
 
-      filasSalida.push({
-        MARCOD: r.MARCOD,
-        MARMODCOD: r.MARMODCOD,
-        MAEANIO: caroneValor(r.MAEANIO),
-        CODIGOCLIENTE: caroneValor(r.CODIGOCLIENTE) !== CARONE_MISSING ? r.CODIGOCLIENTE : '429',
+      return {
+        MARCOD: m.MarcodOut,
+        MARMODCOD: m.MarmodcodOut,
+        MAEANIO: CARONE_MISSING,
+        CODIGOCLIENTE: '429',
         'SHORT NAME': shortName,
         TIPO: tipo,
-        COMBUSTIBLE: m ? caroneValor(m.CombustibleCodigo) : CARONE_MISSING,
-        POTENCIA: m ? caroneValor(m.HP) : CARONE_MISSING,
-        CC: m ? caroneValor(m.CC) : CARONE_MISSING,
-        TRANSMISION: m ? caroneValor(String(m.TipoCajaAut || '').toUpperCase()) : CARONE_MISSING,
-        TRACCION: m ? caroneValor(m.Traccion) : CARONE_MISSING,
-        PASAJEROS: m ? caroneValor(m.Asientos) : CARONE_MISSING,
-        PUERTAS: m ? caroneValor(m.Puertas) : CARONE_MISSING,
-        VELOCIDADES: m ? caroneValor(m.MarchasVelocidades) : CARONE_MISSING,
-        AIRBAG: m ? caroneValor(m.ABAG) : CARONE_MISSING,
-        ISOFIX: m ? caroneSiNo(m.SRI) : CARONE_MISSING,
-        ABS: m ? caroneSiNo(m.ABS) : CARONE_MISSING,
+        COMBUSTIBLE: caroneValor(m.CombustibleCodigo),
+        POTENCIA: caroneValor(m.HP),
+        CC: caroneValor(m.CC),
+        TRANSMISION: caroneValor(String(m.TipoCajaAut || '').toUpperCase()),
+        TRACCION: caroneValor(m.Traccion),
+        PASAJEROS: caroneValor(m.Asientos),
+        PUERTAS: caroneValor(m.Puertas),
+        VELOCIDADES: caroneValor(m.MarchasVelocidades),
+        AIRBAG: caroneValor(m.ABAG),
+        ISOFIX: caroneSiNo(m.SRI),
+        ABS: caroneSiNo(m.ABS),
         ADAS: adas,
-        PESO: m ? caroneValor(m.PesoOrdenMarcha) : CARONE_MISSING,
+        PESO: caroneValor(m.PesoOrdenMarcha),
         MEDIDAS: medidas,
-        BAUL: m ? caroneValor(m.CapacidadBaul) : CARONE_MISSING,
-        'CAP TANQUE': m ? caroneValor(m.CapacidadTanqueCombustible) : CARONE_MISSING,
-        RUEDA: m ? caroneValor(m.DiametroLlantas) : CARONE_MISSING,
-        TAPIZADO: m ? caroneValor(String(m.Tapizado || '').toUpperCase()) : CARONE_MISSING,
-        CAMARA: m ? caroneSiNo(m.Camara) : CARONE_MISSING,
-        SENSOR: m ? caroneSiNo(m.SensorEstacionamiento) : CARONE_MISSING,
-        SUNROOF: m ? caroneSiNo(m.Techo) : CARONE_MISSING,
+        BAUL: caroneValor(m.CapacidadBaul),
+        'CAP TANQUE': caroneValor(m.CapacidadTanqueCombustible),
+        RUEDA: caroneValor(m.DiametroLlantas),
+        TAPIZADO: caroneValor(String(m.Tapizado || '').toUpperCase()),
+        CAMARA: caroneSiNo(m.Camara),
+        SENSOR: caroneSiNo(m.SensorEstacionamiento),
+        SUNROOF: caroneSiNo(m.Techo),
         'DISCOS FRENOS': discos,
-        'CONTROL TRACCION': m ? caroneSiNo(m.ControlTraccion) : CARONE_MISSING,
-        'ANDROID Y APPLE': m ? caroneSiNo(m.MirrorScreen) : CARONE_MISSING,
-        'MARCA CORTA': m ? caroneValor(m.MarcaDescripcion) : CARONE_MISSING,
-        AUTONOMIA: m ? caroneValor(m.AutonomiaMotorElectricoBEVPHEV) : CARONE_MISSING,
-        CAPACIDAD: m ? caroneValor(m.CapacidadOperativaBateria) : CARONE_MISSING,
-        'POTENCIA KW': m ? caroneValor(m.PotenciaMotor) : CARONE_MISSING,
-        'TIPO DE CONECTOR': m ? caroneValor(m.TiposConectores) : CARONE_MISSING
-      });
-    }
+        'CONTROL TRACCION': caroneSiNo(m.ControlTraccion),
+        'ANDROID Y APPLE': caroneSiNo(m.MirrorScreen),
+        'MARCA CORTA': caroneValor(m.MarcaDescripcion),
+        AUTONOMIA: caroneValor(m.AutonomiaMotorElectricoBEVPHEV),
+        CAPACIDAD: caroneValor(m.CapacidadOperativaBateria),
+        'POTENCIA KW': caroneValor(m.PotenciaMotor),
+        'TIPO DE CONECTOR': caroneValor(m.TiposConectores)
+      };
+    });
 
     const wb = xl.utils.book_new();
     xl.utils.book_append_sheet(wb, xl.utils.json_to_sheet(filasSalida), 'CARONE_ACTUALIZADO');
-    if (sinMatch.length > 0) {
-      xl.utils.book_append_sheet(wb, xl.utils.json_to_sheet(sinMatch), 'SIN_MATCH');
-    }
-    xl.utils.book_append_sheet(wb, xl.utils.json_to_sheet([{
-      total_filas_carone: caroneRows.length,
-      con_match_en_definitivo: caroneRows.length - sinMatch.length,
-      sin_match_en_definitivo: sinMatch.length
-    }]), 'RESUMEN');
 
     const buffer = xl.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const ts = new Date().toISOString().replace(/[-:]/g, '').replace('T', '_').slice(0, 13);
 
-    logger.info(`Export Carone generado: ${caroneRows.length} filas, ${sinMatch.length} sin match, por usuario ${req.user?.username}`);
+    logger.info(`Export Carone generado: ${filasSalida.length} modelos definitivos, por usuario ${req.user?.username}`);
 
-    res.setHeader('Content-Disposition', `attachment; filename=CARONE_actualizado_${ts}.xlsx`);
+    res.setHeader('Content-Disposition', `attachment; filename=CARONE_${ts}.xlsx`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.status(200).send(buffer);
 

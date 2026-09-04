@@ -9,7 +9,6 @@ export function ExportPage() {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(new Date().getFullYear());
   const [isExporting, setIsExporting] = useState(false);
-  const [caroneFile, setCaroneFile] = useState<File | null>(null);
   const [shortnameFile, setShortnameFile] = useState<File | null>(null);
 
   // Generar opciones para años (últimos 5 años)
@@ -34,16 +33,13 @@ export function ExportPage() {
 
   const handleExport = async () => {
     if (tipoExport === 'carone') {
-      if (!caroneFile || !shortnameFile) {
-        addToast('Subí los dos archivos (catálogo Carone y SHORTNAME)', 'error');
-        return;
-      }
       setIsExporting(true);
       try {
         const token = localStorage.getItem('token');
         const formData = new FormData();
-        formData.append('carone', caroneFile);
-        formData.append('shortname', shortnameFile);
+        if (shortnameFile) {
+          formData.append('shortname', shortnameFile);
+        }
 
         const response = await fetch('/api/export/carone', {
           method: 'POST',
@@ -60,7 +56,7 @@ export function ExportPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'CARONE_actualizado.xlsx';
+        a.download = 'CARONE.xlsx';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -229,23 +225,12 @@ export function ExportPage() {
             {tipoExport === 'carone' && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Matchea el catálogo de Carone (MARCOD/MARMODCOD) contra nuestros modelos en estado
-                  "definitivo" y completa las columnas de specs en el formato que espera su sistema.
+                  Genera el Excel con todos los modelos en estado "definitivo" en el formato que espera
+                  el sistema de Carone. No hace falta subir nada.
                 </p>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Catálogo Carone (.xlsx, .xls o .csv)
-                  </label>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={(e) => setCaroneFile(e.target.files?.[0] || null)}
-                    className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-muted file:text-foreground file:cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    SHORTNAME.csv
+                    SHORTNAME.csv <span className="text-muted-foreground font-normal">(opcional — solo para completar la columna SHORT NAME)</span>
                   </label>
                   <input
                     type="file"
